@@ -583,6 +583,7 @@ export struct AddDishPage {
         price: price,
         category: this.newDish.category,
         is_recommended: this.newDish.isRecommended,
+        shop_id: 1,
         image_url: imagePayloadPath,
         status: 'available'
       };
@@ -613,7 +614,7 @@ export struct AddDishPage {
     }
     this.isLoading = true;
     try {
-      const sampleDishes: CreateDishRequest[] = [
+      const sampleDishes: Array<CreateDishRequest> = [
         {
           name: '宫保鸡丁',
           description: '经典川菜，鸡肉鲜嫩，花生香脆，微辣微甜',

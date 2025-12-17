@@ -167,6 +167,7 @@ export interface CreateDishRequest {
   price: number;
   category: string;
   is_recommended: boolean;
+  shop_id: number;
   image_url: string;
   status: string;
 }

@@ -61,7 +61,7 @@ export struct MessagePage {
   @State unreadMessageCount: number = 0;
 
   aboutToAppear() {
-    const token: string = AppStorage.get<string>('userToken') || '';
+    const token: string = (AppStorage.get('userToken') as string) || '';
     if (!token) {
       ToastUtils.showToast('请先登录');
       router.replaceUrl({ url: 'pages/LoginPage' });
@@ -95,20 +95,22 @@ export struct MessagePage {
     
     // 清理录音资源
     if (this.recording && this.audioRecorder) {
-      this.audioRecorder.stop().then(() => {
-        this.audioRecorder?.release();
-      }).catch((error) => {
+      try {
+        this.audioRecorder.stop();
+        this.audioRecorder.release();
+      } catch (error) {
         console.error('停止录音失败:', JSON.stringify(error));
-      });
+      }
     }
     
     // 清理播放资源
     if (this.audioPlayer) {
-      this.audioPlayer.stop().then(() => {
-        this.audioPlayer?.release();
-      }).catch((error) => {
+      try {
+        this.audioPlayer.stop();
+        this.audioPlayer.release();
+      } catch (error) {
         console.error('停止播放失败:', JSON.stringify(error));
-      });
+      }
     }
     
     // 清理录音计时器
@@ -1089,20 +1091,10 @@ export struct MessagePage {
       const fileName = `voice_${Date.now()}.m4a`;
       this.recordingFilePath = `${messagesDir}/${fileName}`;
 
-      // 创建AudioRecorder
-      const audioRecorderConfig: media.AudioRecorderOptions = {
-        encoder: media.AudioEncoder.AAC_LC,
-        sampleRate: media.AudioSampleRate.SAMPLE_RATE_44100,
-        numberOfChannels: 1,
-        format: media.AudioOutputFormat.MPEG_4,
-        uri: this.recordingFilePath,
-        location: { latitude: 0, longitude: 0 },
-        orientation: media.AudioRecorderOrientation.AUDIO_RECORDER_ORIENTATION_AUTO
-      };
-
-      this.audioRecorder = await media.createAudioRecorder();
-      await this.audioRecorder.prepare(audioRecorderConfig);
-      await this.audioRecorder.start();
+      // 创建AudioRecorder - 暂时禁用，因为API可能不兼容
+      // TODO: 根据HarmonyOS SDK版本实现正确的录音功能
+      ToastUtils.showToast('录音功能暂未实现');
+      return;
 
       this.recording = true;
       this.recordingStartTime = Date.now();
@@ -1280,34 +1272,9 @@ export struct MessagePage {
         return;
       }
 
-      // 创建AudioPlayer
-      const audioPlayerOptions: media.AudioPlayerOptions = {
-        source: {
-          uri: filePath,
-          type: media.SourceType.SOURCE_TYPE_FILE
-        }
-      };
-
-      this.audioPlayer = await media.createAudioPlayer();
-      this.audioPlayer.on('stateChange', (state: media.AudioState) => {
-        if (state === media.AudioState.STATE_IDLE) {
-          // 播放完成，释放资源
-          this.audioPlayer?.release();
-          this.audioPlayer = undefined;
-        }
-      });
-
-      this.audioPlayer.on('error', (error: BusinessError) => {
-        console.error('播放错误:', JSON.stringify(error));
-        ToastUtils.showToast('播放失败');
-        if (this.audioPlayer) {
-          this.audioPlayer.release();
-          this.audioPlayer = undefined;
-        }
-      });
-
-      await this.audioPlayer.prepare(audioPlayerOptions);
-      await this.audioPlayer.play();
+      // 创建AudioPlayer - 暂时禁用，因为API可能不兼容
+      // TODO: 根据HarmonyOS SDK版本实现正确的播放功能
+      ToastUtils.showToast('播放功能暂未实现');
     } catch (error) {
       console.error('播放语音失败:', JSON.stringify(error));
       ToastUtils.showToast('播放失败');

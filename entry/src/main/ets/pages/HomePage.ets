@@ -2549,6 +2549,7 @@ export struct HomePage {
         price: price,
         category: this.newDish.category,
         is_recommended: this.newDish.isRecommended,
+        shop_id: 1,
         image_url: imagePayloadPath,
         status: 'available'
       };
@@ -2761,7 +2762,7 @@ export struct HomePage {
 
   // 快速添加示例菜品
   async addSampleDishes() {
-    const sampleDishes: CreateDishRequest[] = [
+    const sampleDishes: Array<CreateDishRequest> = [
       {
         name: '宫保鸡丁',
         description: '经典川菜，鸡肉鲜嫩，花生香脆，微辣微甜',
@@ -2769,6 +2770,7 @@ export struct HomePage {
         price: 38.00,
         category: '热菜',
         is_recommended: true,
+        shop_id: 1,
         image_url: 'app.media.dish1',
         status: 'available'
       },
@@ -2779,6 +2781,7 @@ export struct HomePage {
         price: 28.00,
         category: '热菜',
         is_recommended: true,
+        shop_id: 1,
         image_url: 'app.media.dish2',
         status: 'available'
       },
@@ -2789,6 +2792,7 @@ export struct HomePage {
         price: 42.00,
         category: '热菜',
         is_recommended: true,
+        shop_id: 1,
         image_url: 'app.media.dish3',
         status: 'available'
       },
@@ -2799,6 +2803,7 @@ export struct HomePage {
         price: 48.00,
         category: '热菜',
         is_recommended: true,
+        shop_id: 1,
         image_url: 'app.media.dish4',
         status: 'available'
       },
@@ -2809,6 +2814,7 @@ export struct HomePage {
         price: 68.00,
         category: '热菜',
         is_recommended: false,
+        shop_id: 1,
         image_url: 'app.media.dish5',
         status: 'available'
       },
@@ -2819,6 +2825,7 @@ export struct HomePage {
         price: 18.00,
         category: '凉菜',
         is_recommended: false,
+        shop_id: 1,
         image_url: 'app.media.default_dish',
         status: 'available'
       },
@@ -2829,6 +2836,7 @@ export struct HomePage {
         price: 32.00,
         category: '主食',
         is_recommended: true,
+        shop_id: 1,
         image_url: 'app.media.dish3',
         status: 'available'
       },
@@ -2839,6 +2847,7 @@ export struct HomePage {
         price: 22.00,
         category: '甜品',
         is_recommended: true,
+        shop_id: 1,
         image_url: 'app.media.default_dish',
         status: 'available'
       }

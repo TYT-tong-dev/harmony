@@ -337,7 +337,7 @@ struct DishDetailPage {
   @Builder
   BottomBar() {
     Row() {
-      Button('写评价', { type: ButtonType.Normal })
+      Button(this.myReview ? '修改评价' : '写评价', { type: ButtonType.Normal })
         .layoutWeight(1)
         .height(48)
         .backgroundColor('#007DFF')
@@ -345,8 +345,15 @@ struct DishDetailPage {
         .fontSize(16)
         .borderRadius(24)
         .onClick(() => {
-          this.myRating = 5;
-          this.myReviewContent = '';
+          if (this.myReview) {
+            // 加载已有评价
+            this.myRating = this.myReview.rating;
+            this.myReviewContent = this.myReview.content;
+          } else {
+            // 新建评价
+            this.myRating = 5;
+            this.myReviewContent = '';
+          }
           this.showReviewDialog = true;
         })
     }
@@ -366,13 +373,13 @@ struct DishDetailPage {
         .backgroundColor('#80000000')
         .onClick(() => { this.showReviewDialog = false; })
 
-      // 对话框
-      Column() {
-        Text('评价菜品')
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#1A1A1A')
-          .margin({ bottom: 20 })
+        // 对话框
+        Column() {
+          Text(this.myReview ? '修改评价' : '评价菜品')
+            .fontSize(18)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#1A1A1A')
+            .margin({ bottom: 20 })
 
         // 星星评分
         Text('您的评分')
@@ -475,6 +482,33 @@ struct DishDetailPage {
           content: item.content,
           createdAt: item.created_at
         }));
+        
+        // 检查当前用户是否已评价
+        const token: string = (AppStorage.get('userToken') as string) || '';
+        if (token) {
+          try {
+            // 解析JWT token获取用户ID
+            const parts = token.split('.');
+            if (parts.length === 3) {
+              // 使用HarmonyOS的base64解码
+              const base64Payload = parts[1];
+              const decodedPayload = this.base64Decode(base64Payload);
+              interface TokenPayload {
+                uid?: number;
+              }
+              const payload: TokenPayload = JSON.parse(decodedPayload) as TokenPayload;
+              const currentUserId = payload.uid;
+              if (currentUserId) {
+                this.myReview = data.find((item: ReviewData) => item.user_id === currentUserId) || null;
+              }
+            }
+          } catch (e) {
+            console.error('解析token失败:', JSON.stringify(e));
+            this.myReview = null;
+          }
+        } else {
+          this.myReview = null;
+        }
       }
     } catch (error) {
       console.error('加载评价失败:' + JSON.stringify(error));
@@ -494,8 +528,8 @@ struct DishDetailPage {
         content: this.myReviewContent.trim()
       };
       const response: ApiResponse = await ApiUtils.post(`/dishes/${this.dish.id}/reviews`, reviewRequest);
-      if (response.statusCode === 200) {
-        ToastUtils.showToast('评价成功');
+      if (response.statusCode === 200 && response.data) {
+        ToastUtils.showToast(this.myReview ? '修改成功' : '评价成功');
         this.showReviewDialog = false;
         // 重新加载评价列表
         await this.loadReviews(this.dish.id);
@@ -531,6 +565,36 @@ struct DishDetailPage {
       const month = (date.getMonth() + 1).toString().padStart(2, '0');
       const day = date.getDate().toString().padStart(2, '0');
       return `${month}-${day}`;
+    }
+  }
+
+  // Base64解码
+  private base64Decode(base64: string): string {
+    try {
+      // HarmonyOS的base64解码实现
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+      let str = '';
+      let i = 0;
+      base64 = base64.replace(/[^A-Za-z0-9\+\/\=]/g, '');
+      
+      while (i < base64.length) {
+        const enc1 = chars.indexOf(base64.charAt(i++));
+        const enc2 = chars.indexOf(base64.charAt(i++));
+        const enc3 = chars.indexOf(base64.charAt(i++));
+        const enc4 = chars.indexOf(base64.charAt(i++));
+        
+        const chr1 = (enc1 << 2) | (enc2 >> 4);
+        const chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
+        const chr3 = ((enc3 & 3) << 6) | enc4;
+        
+        str += String.fromCharCode(chr1);
+        if (enc3 !== 64) str += String.fromCharCode(chr2);
+        if (enc4 !== 64) str += String.fromCharCode(chr3);
+      }
+      return decodeURIComponent(escape(str));
+    } catch (e) {
+      console.error('Base64解码失败:', JSON.stringify(e));
+      return '';
     }
   }
 
