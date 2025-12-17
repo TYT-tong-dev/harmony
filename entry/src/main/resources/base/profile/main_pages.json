@@ -1,0 +1,21 @@
+{
+  "src": [
+    "pages/Index",
+    "pages/LoginPage",
+    "pages/ForgotPasswordPage",
+    "pages/RegisterPage",
+    "pages/DiscoverPage",
+    "pages/MessagePage",
+    "pages/ProfilePage",
+    "pages/MainPage",
+    "pages/CartPage",
+    "pages/ChatPage",
+    "pages/HomePage",
+    "pages/DishManagementPage",
+    "pages/AddDishPage",
+    "pages/TableQRCodePage",
+    "pages/DishDetailPage",
+    "pages/MyFollowsPage",
+    "pages/NotificationPage"
+  ]
+}

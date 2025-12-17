@@ -1,0 +1,37 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "食光记顾客点餐服务"
+    },
+    {
+      "name": "customer_module_desc",
+      "value": "食光记顾客点餐元服务"
+    },
+    {
+      "name": "CustomerAbility_desc",
+      "value": "顾客扫码点餐"
+    },
+    {
+      "name": "CustomerAbility_label",
+      "value": "食光记点餐"
+    },
+    {
+      "name": "internet_permission_reason",
+      "value": "用于获取菜单和提交订单"
+    },
+    {
+      "name": "network_info_permission_reason",
+      "value": "用于检测网络状态"
+    },
+    {
+      "name": "notification_permission_reason",
+      "value": "用于接收订单状态更新提醒"
+    },
+    {
+      "name": "vibrate_permission_reason",
+      "value": "用于通知震动提醒"
+    }
+  ]
+}
+

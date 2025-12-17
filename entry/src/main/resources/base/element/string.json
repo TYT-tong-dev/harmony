@@ -1,0 +1,52 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "module description"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "description"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "label"
+    },
+    {
+      "name": "internet_permission_reason",
+      "value": "需要网络权限来访问后端API"
+    },
+    {
+      "name": "network_info_permission_reason",
+      "value": "需要读取网络状态以适配不同的网络环境"
+    },
+    {
+      "name": "read_media_permission_reason",
+      "value": "需要读取媒体库以展示用户的图片与视频"
+    },
+    {
+      "name": "write_media_permission_reason",
+      "value": "需要保存生成的图片或视频到媒体库"
+    },
+    {
+      "name": "read_image_video_permission_reason",
+      "value": "需要读取图像与视频以供内容上传"
+    },
+    {
+      "name": "write_image_video_permission_reason",
+      "value": "需要写入图像与视频文件到本地图库"
+    },
+    {
+      "name": "camera_permission_reason",
+      "value": "需要相机权限以拍摄菜品或聊天照片"
+    },
+    {
+      "name": "notification_permission_reason",
+      "value": "需要通知权限以接收新订单和新消息提醒"
+    },
+    {
+      "name": "vibrate_permission_reason",
+      "value": "需要震动权限以进行通知提醒"
+    }
+  ]
+}

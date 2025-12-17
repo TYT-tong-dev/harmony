@@ -1,0 +1,88 @@
+{
+  "module": {
+    "name": "customer",
+    "type": "entry",
+    "description": "$string:customer_module_desc",
+    "mainElement": "CustomerAbility",
+    "deviceTypes": [
+      "phone",
+      "tablet"
+    ],
+    "deliveryWithInstall": true,
+    "installationFree": true,
+    "pages": "$profile:main_pages",
+    "abilities": [
+      {
+        "name": "CustomerAbility",
+        "srcEntry": "./ets/customerability/CustomerAbility.ets",
+        "description": "$string:CustomerAbility_desc",
+        "icon": "$media:customer_icon",
+        "label": "$string:CustomerAbility_label",
+        "startWindowIcon": "$media:customer_icon",
+        "startWindowBackground": "$color:start_window_background",
+        "exported": true,
+        "skills": [
+          {
+            "entities": [
+              "entity.system.home"
+            ],
+            "actions": [
+              "action.system.home"
+            ]
+          },
+          {
+            "entities": [
+              "entity.system.browsable"
+            ],
+            "actions": [
+              "action.system.viewData"
+            ],
+            "uris": [
+              {
+                "scheme": "https",
+                "host": "restaurant.customer.com",
+                "pathStartWith": "/table"
+              },
+              {
+                "scheme": "customer-app"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.INTERNET",
+        "reason": "$string:internet_permission_reason",
+        "usedScene": {
+          "abilities": [
+            "CustomerAbility"
+          ],
+          "when": "inuse"
+        }
+      },
+      {
+        "name": "ohos.permission.NOTIFICATION_CONTROLLER",
+        "reason": "$string:notification_permission_reason",
+        "usedScene": {
+          "abilities": [
+            "CustomerAbility"
+          ],
+          "when": "always"
+        }
+      },
+      {
+        "name": "ohos.permission.VIBRATE",
+        "reason": "$string:vibrate_permission_reason",
+        "usedScene": {
+          "abilities": [
+            "CustomerAbility"
+          ],
+          "when": "inuse"
+        }
+      }
+    ]
+  }
+}
+
