@@ -66,11 +66,11 @@ struct MyFollowsPage {
         const data = response.data as FollowResponse;
         // 确认取消关注成功（is_following 应该为 false）
         if (!data.is_following) {
-          // 从列表中移除
-          this.followList = this.followList.filter((u: FollowUser) => u.id !== user.id);
-          this.total = Math.max(0, this.total - 1);
-          ToastUtils.showToast('已取消关注');
-        } else {
+        // 从列表中移除
+        this.followList = this.followList.filter((u: FollowUser) => u.id !== user.id);
+        this.total = Math.max(0, this.total - 1);
+        ToastUtils.showToast('已取消关注');
+      } else {
           // 如果响应显示仍在关注，说明操作可能失败
           ToastUtils.showToast('操作失败，请重试');
         }

@@ -351,8 +351,8 @@ struct DishDetailPage {
             this.myReviewContent = this.myReview.content;
           } else {
             // 新建评价
-            this.myRating = 5;
-            this.myReviewContent = '';
+          this.myRating = 5;
+          this.myReviewContent = '';
           }
           this.showReviewDialog = true;
         })
@@ -373,13 +373,13 @@ struct DishDetailPage {
         .backgroundColor('#80000000')
         .onClick(() => { this.showReviewDialog = false; })
 
-        // 对话框
-        Column() {
+      // 对话框
+      Column() {
           Text(this.myReview ? '修改评价' : '评价菜品')
-            .fontSize(18)
-            .fontWeight(FontWeight.Bold)
-            .fontColor('#1A1A1A')
-            .margin({ bottom: 20 })
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#1A1A1A')
+          .margin({ bottom: 20 })
 
         // 星星评分
         Text('您的评分')

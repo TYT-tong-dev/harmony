@@ -256,13 +256,14 @@ def get_dish_list():
 @login_required
 def add_dish(_jwt_claims=None):
     try:
-    data = request.get_json(silent=True) or {}
-    name = data.get("name", "").strip()
-    if not name:
-        return error_response("菜品名称不能为空", 400)
+        data = request.get_json(silent=True) or {}
+        name = data.get("name", "").strip()
+        if not name:
+            return error_response("菜品名称不能为空", 400)
 
         shop_id = data.get("shop_id", 1)
         description = data.get("description", "")
+        cooking_method = data.get("cooking_method", "")
         price = float(data.get("price", 0)) if data.get("price") is not None else 0.0
         image_url = data.get("image_url", "")
         category = data.get("category", "")
@@ -273,6 +274,7 @@ def add_dish(_jwt_claims=None):
             shop_id=shop_id,
             name=name,
             description=description,
+            cooking_method=cooking_method,
             price=price,
             image_url=image_url,
             category=category,
@@ -285,6 +287,7 @@ def add_dish(_jwt_claims=None):
             "id": new_dish["id"],
             "name": new_dish["name"],
             "description": new_dish.get("description", ""),
+            "cooking_method": new_dish.get("cooking_method", ""),
             "price": float(new_dish["price"]),
             "image_url": new_dish.get("image_url", ""),
             "category": new_dish.get("category", ""),

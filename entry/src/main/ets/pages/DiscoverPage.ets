@@ -644,21 +644,21 @@ export struct DiscoverPage {
 
   private ensurePostFormInitialized(): void {
     try {
-      if (!this.newPost) {
-        this.newPost = createEmptyPostForm();
-        return;
-      }
+    if (!this.newPost) {
+      this.newPost = createEmptyPostForm();
+      return;
+    }
       // 确保content是字符串
       if (typeof this.newPost.content !== 'string') {
-        this.newPost.content = '';
-      }
+      this.newPost.content = '';
+    }
       // 确保images是数组
       if (!Array.isArray(this.newPost.images)) {
-        this.newPost.images = [];
-      }
+      this.newPost.images = [];
+    }
       // 确保videos是数组
       if (!Array.isArray(this.newPost.videos)) {
-        this.newPost.videos = [];
+      this.newPost.videos = [];
       }
     } catch (error) {
       console.error('初始化发布表单失败: ' + JSON.stringify(error));
@@ -678,7 +678,7 @@ export struct DiscoverPage {
 
   private resetNewPostForm(): void {
     try {
-      this.newPost = createEmptyPostForm();
+    this.newPost = createEmptyPostForm();
       this.mediaProcessing = false;
     } catch (error) {
       console.error('重置表单失败: ' + JSON.stringify(error));
@@ -746,7 +746,7 @@ export struct DiscoverPage {
       }
       const imageList: string[] = (Array.isArray(this.newPost.images)) ? this.newPost.images : [];
       const videoList: string[] = (Array.isArray(this.newPost.videos)) ? this.newPost.videos : [];
-      return imageList.length + videoList.length;
+    return imageList.length + videoList.length;
     } catch (error) {
       console.error('getCurrentMediaTotal异常: ' + JSON.stringify(error));
       return 0;
@@ -788,8 +788,8 @@ export struct DiscoverPage {
   private toRelativeMediaPath(path: string): string {
     try {
       if (!path || typeof path !== 'string') {
-        return '';
-      }
+      return '';
+    }
       if (!this.context) {
         // 尝试获取context
         try {
@@ -799,18 +799,18 @@ export struct DiscoverPage {
           return path;
         }
       }
-      if (!this.context) {
-        return path;
-      }
-      const filesDir = this.context.filesDir;
+    if (!this.context) {
+      return path;
+    }
+    const filesDir = this.context.filesDir;
       if (!filesDir) {
         return path;
       }
-      if (path.startsWith(filesDir)) {
-        const trimmed = path.substring(filesDir.length);
-        return trimmed.startsWith('/') ? trimmed.substring(1) : trimmed;
-      }
-      return path;
+    if (path.startsWith(filesDir)) {
+      const trimmed = path.substring(filesDir.length);
+      return trimmed.startsWith('/') ? trimmed.substring(1) : trimmed;
+    }
+    return path;
     } catch (error) {
       console.error('toRelativeMediaPath异常: ' + JSON.stringify(error));
       return path || '';
@@ -892,21 +892,21 @@ export struct DiscoverPage {
       if (!paths || !Array.isArray(paths)) {
         return [];
       }
-      const dedup: string[] = [];
-      paths.forEach((path: string) => {
+    const dedup: string[] = [];
+    paths.forEach((path: string) => {
         try {
           if (path) {
-            const relative = this.toRelativeMediaPath(path);
+      const relative = this.toRelativeMediaPath(path);
             if (relative && relative.length > 0 && dedup.indexOf(relative) === -1) {
-              dedup.push(relative);
+        dedup.push(relative);
             }
           }
         } catch (e) {
           console.error('处理路径失败: ' + JSON.stringify(e));
           // 跳过无效路径
-        }
-      });
-      return dedup;
+      }
+    });
+    return dedup;
     } catch (error) {
       console.error('buildPayloadPaths异常: ' + JSON.stringify(error));
       return [];
@@ -1000,33 +1000,33 @@ export struct DiscoverPage {
 
   private async handleMediaResult(uris: string[], type: 'image' | 'video'): Promise<void> {
     try {
-      this.ensurePostFormInitialized();
+    this.ensurePostFormInitialized();
       if (!uris || !Array.isArray(uris) || uris.length === 0) {
-        return;
-      }
-      this.mediaProcessing = true;
-      try {
-        for (const uri of uris) {
+      return;
+    }
+    this.mediaProcessing = true;
+    try {
+      for (const uri of uris) {
           if (!uri || typeof uri !== 'string') {
             continue;
           }
-          if (this.getCurrentMediaTotal() >= this.maxMediaCount) {
-            ToastUtils.showToast(`最多只能选择${this.maxMediaCount}个文件`);
-            break;
-          }
+        if (this.getCurrentMediaTotal() >= this.maxMediaCount) {
+          ToastUtils.showToast(`最多只能选择${this.maxMediaCount}个文件`);
+          break;
+        }
           try {
-            const storedPath = await this.persistMedia(uri, type);
+        const storedPath = await this.persistMedia(uri, type);
             if (storedPath && typeof storedPath === 'string') {
               this.ensurePostFormInitialized();
-              if (type === 'image') {
+        if (type === 'image') {
                 if (Array.isArray(this.newPost.images)) {
-                  this.newPost.images = [...this.newPost.images, storedPath];
-                } else {
+          this.newPost.images = [...this.newPost.images, storedPath];
+        } else {
                   this.newPost.images = [storedPath];
                 }
               } else {
                 if (Array.isArray(this.newPost.videos)) {
-                  this.newPost.videos = [...this.newPost.videos, storedPath];
+          this.newPost.videos = [...this.newPost.videos, storedPath];
                 } else {
                   this.newPost.videos = [storedPath];
                 }
@@ -1035,10 +1035,10 @@ export struct DiscoverPage {
           } catch (e) {
             console.error('处理单个媒体文件失败: ' + JSON.stringify(e));
             // 继续处理下一个文件
-          }
         }
-      } finally {
-        this.mediaProcessing = false;
+      }
+    } finally {
+      this.mediaProcessing = false;
       }
     } catch (error) {
       console.error('handleMediaResult异常: ' + JSON.stringify(error));
@@ -1334,7 +1334,7 @@ export struct DiscoverPage {
         this.showPostDialog = false;
         // 刷新列表 - 使用安全的方式
         try {
-          this.loadPosts(true);
+        this.loadPosts(true);
         } catch (e) {
           console.error('刷新列表失败: ' + JSON.stringify(e));
           // 刷新失败不影响发布成功
@@ -1557,9 +1557,9 @@ export struct DiscoverPage {
             .backgroundColor('#66000000')
             .onClick(() => {
               try {
-                if (!this.posting) {
-                  this.showPostDialog = false;
-                  this.resetNewPostForm();
+              if (!this.posting) {
+                this.showPostDialog = false;
+                this.resetNewPostForm();
                 } else {
                   ToastUtils.showToast('正在发布中，请稍候...');
                 }
@@ -1901,10 +1901,10 @@ export struct DiscoverPage {
           .height(40)
           .onClick(() => {
             try {
-              console.info('取消按钮被点击');
+            console.info('取消按钮被点击');
               if (!this.posting) {
-                this.showPostDialog = false;
-                this.resetNewPostForm();
+            this.showPostDialog = false;
+            this.resetNewPostForm();
               } else {
                 ToastUtils.showToast('正在发布中，请稍候...');
               }

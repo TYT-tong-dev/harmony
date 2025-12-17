@@ -478,19 +478,19 @@ export struct MessagePage {
       Row() {
         // 语音按钮
         Row({ space: 4 }) {
-          Button(this.recording ? '🎤' : '🎙', { type: ButtonType.Normal })
-            .fontSize(20)
-            .backgroundColor(Color.Transparent)
-            .borderColor(Color.Transparent)
-            .width(32)
-            .height(32)
-            .onClick(() => {
-              if (this.recording) {
-                this.stopRecording();
-              } else {
-                this.startRecording();
-              }
-            })
+        Button(this.recording ? '🎤' : '🎙', { type: ButtonType.Normal })
+          .fontSize(20)
+          .backgroundColor(Color.Transparent)
+          .borderColor(Color.Transparent)
+          .width(32)
+          .height(32)
+          .onClick(() => {
+            if (this.recording) {
+              this.stopRecording();
+            } else {
+              this.startRecording();
+            }
+          })
           if (this.recording) {
             Text(`${this.recordingDuration}''`)
               .fontSize(12)
