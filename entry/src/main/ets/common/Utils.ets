@@ -371,7 +371,7 @@ export class LocalCartManager {
 // API 工具类 - 连接后端MySQL数据库API
 export class ApiUtils {
   // 后端API基础URL - 根据实际情况修改
-  private static readonly BASE_URL: string = 'http://10.100.214.82:5000/api';
+  private static readonly BASE_URL: string = 'http://10.12.8.110:5000/api';
   
   // 获取用户token
   private static getToken(): string {
