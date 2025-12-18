@@ -334,16 +334,16 @@ def add_to_cart(_jwt_claims=None):
         if not user_id:
             return error_response("用户未登录", 401)
         
-    data = request.get_json(silent=True) or {}
-    dish_id = data.get("dish_id")
-    quantity = int(data.get("quantity", 1))
+        data = request.get_json(silent=True) or {}
+        dish_id = data.get("dish_id")
+        quantity = int(data.get("quantity", 1))
 
-    if dish_id is None:
-        return error_response("缺少菜品ID", 400)
+        if dish_id is None:
+            return error_response("缺少菜品ID", 400)
 
         cart_data = CartModel.add_item(user_id, dish_id, quantity)
         if cart_data is None:
-        return error_response("菜品不存在", 404)
+            return error_response("菜品不存在", 404)
 
         return success_response("加入购物车成功", cart_data)
     except Exception as e:
@@ -361,9 +361,9 @@ def update_cart_item(_jwt_claims=None):
         if not user_id:
             return error_response("用户未登录", 401)
         
-    data = request.get_json(silent=True) or {}
-    dish_id = data.get("dish_id")
-    quantity = int(data.get("quantity", 1))
+        data = request.get_json(silent=True) or {}
+        dish_id = data.get("dish_id")
+        quantity = int(data.get("quantity", 1))
 
         if dish_id is None:
             return error_response("缺少菜品ID", 400)
@@ -409,7 +409,7 @@ def create_order(_jwt_claims=None):
         cart_data = CartModel.get_items(user_id)
         items = cart_data.get('items', []) if cart_data else []
         if not items:
-        return error_response("购物车为空", 400)
+            return error_response("购物车为空", 400)
 
         # 请求参数
         data = request.get_json(silent=True) or {}
@@ -434,7 +434,7 @@ def create_order(_jwt_claims=None):
         if not order:
             return error_response("创建订单失败", 500)
 
-    # 清空购物车
+        # 清空购物车
         CartModel.clear(user_id)
 
         return success_response("订单创建成功", order)
@@ -570,14 +570,14 @@ def get_user_orders(_jwt_claims=None):
 @data_bp.route("/posts/list", methods=["GET"])
 def get_posts():
     try:
-    page = int(request.args.get("page", 1))
-    limit = int(request.args.get("limit", 10))
+        page = int(request.args.get("page", 1))
+        limit = int(request.args.get("limit", 10))
         category = request.args.get("category", "推荐")  # 支持: 推荐、附近、关注
 
-    # 获取当前用户ID，添加关注状态
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    payload = decode_token(token)
-    current_user_id = payload.get('uid') if payload else None
+        # 获取当前用户ID，添加关注状态
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        payload = decode_token(token)
+        current_user_id = payload.get('uid') if payload else None
 
         # 获取关注用户ID列表（如果是"关注"分类）
         following_ids = None
@@ -596,12 +596,12 @@ def get_posts():
         # 添加关注状态
         if current_user_id and result['posts']:
             user_ids = [p.get('user_id') for p in result['posts'] if p.get('user_id')]
-        if user_ids:
-            follow_status = FollowModel.check_following_batch(current_user_id, user_ids)
+            if user_ids:
+                follow_status = FollowModel.check_following_batch(current_user_id, user_ids)
                 for post in result['posts']:
-                post_user_id = post.get('user_id')
-                if post_user_id:
-                    post['isFollowed'] = follow_status.get(post_user_id, False)
+                    post_user_id = post.get('user_id')
+                    if post_user_id:
+                        post['isFollowed'] = follow_status.get(post_user_id, False)
 
         return success_response("获取帖子成功", {
             "posts": result['posts'],
@@ -620,29 +620,29 @@ def get_posts():
 @login_required
 def create_post(_jwt_claims=None):
     try:
-    data = request.get_json(silent=True) or {}
-    title = data.get("title", "").strip()
-    content = data.get("content", "").strip()
-    raw_images = data.get("images", []) or []
-    raw_videos = data.get("videos", []) or []
-    images = [str(item) for item in raw_images if isinstance(item, str) and item.strip()]
-    videos = [str(item) for item in raw_videos if isinstance(item, str) and item.strip()]
+        data = request.get_json(silent=True) or {}
+        title = data.get("title", "").strip()
+        content = data.get("content", "").strip()
+        raw_images = data.get("images", []) or []
+        raw_videos = data.get("videos", []) or []
+        images = [str(item) for item in raw_images if isinstance(item, str) and item.strip()]
+        videos = [str(item) for item in raw_videos if isinstance(item, str) and item.strip()]
 
-    # 获取当前用户信息
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    payload = decode_token(token)
-    current_user_id = payload.get('uid') if payload else None
-    current_username = payload.get('username', '用户') if payload else '用户'
+        # 获取当前用户信息
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        payload = decode_token(token)
+        current_user_id = payload.get('uid') if payload else None
+        current_username = payload.get('username', '用户') if payload else '用户'
 
         if not current_user_id:
             return error_response("用户未登录", 401)
 
-    if not title or not content:
-        return error_response("标题和内容不能为空", 400)
+        if not title or not content:
+            return error_response("标题和内容不能为空", 400)
 
-    image_urls = data.get("image_urls", "")
-    if not image_urls:
-        image_urls = ",".join(images + videos)
+        image_urls = data.get("image_urls", "")
+        if not image_urls:
+            image_urls = ",".join(images + videos)
 
         # 保存到数据库
         post = PostModel.create(
@@ -686,16 +686,16 @@ def like_post(_jwt_claims=None):
         if not current_user_id:
             return error_response("用户未登录", 401)
 
-    data = request.get_json(silent=True) or {}
-    post_id = data.get("post_id")
+        data = request.get_json(silent=True) or {}
+        post_id = data.get("post_id")
 
         if not post_id:
             return error_response("缺少帖子ID", 400)
 
         # 检查帖子是否存在
         post = PostModel.get_by_id(post_id)
-    if not post:
-        return error_response("帖子不存在", 404)
+        if not post:
+            return error_response("帖子不存在", 404)
 
         # 点赞/取消点赞
         result = PostModel.like_post(post_id, current_user_id)
@@ -708,12 +708,12 @@ def like_post(_jwt_claims=None):
 @data_bp.route("/posts/comments", methods=["GET"])
 def get_post_comments():
     try:
-    post_id = int(request.args.get("post_id", 0))
+        post_id = int(request.args.get("post_id", 0))
         if not post_id:
             return error_response("缺少帖子ID", 400)
 
         comments = CommentModel.get_by_post_id(post_id)
-    return success_response("获取评论成功", {"comments": comments})
+        return success_response("获取评论成功", {"comments": comments})
     except Exception as e:
         return error_response(f"获取评论失败: {str(e)}", 500)
 
@@ -729,12 +729,12 @@ def create_comment(_jwt_claims=None):
         if not current_user_id:
             return error_response("用户未登录", 401)
 
-    data = request.get_json(silent=True) or {}
-    post_id = data.get("post_id")
-    content = (data.get("content") or "").strip()
+        data = request.get_json(silent=True) or {}
+        post_id = data.get("post_id")
+        content = (data.get("content") or "").strip()
 
-    if not post_id or not content:
-        return error_response("评论内容不能为空", 400)
+        if not post_id or not content:
+            return error_response("评论内容不能为空", 400)
 
         # 检查帖子是否存在
         post = PostModel.get_by_id(post_id)
@@ -983,8 +983,8 @@ def get_dish_detail(dish_id: int):
         from models.dish_review_model import DishReviewModel
         
         dish = DishModel.get_by_id(dish_id)
-    if not dish:
-        return error_response("菜品不存在", 404)
+        if not dish:
+            return error_response("菜品不存在", 404)
 
         # 获取评分统计
         stats = DishReviewModel.get_rating_stats(dish_id)
@@ -1003,7 +1003,7 @@ def get_dish_detail(dish_id: int):
             "review_count": stats["review_count"]
         }
 
-    return success_response("获取菜品详情成功", dish_data)
+        return success_response("获取菜品详情成功", dish_data)
     except Exception as e:
         return error_response(f"获取菜品详情失败: {str(e)}", 500)
 
@@ -1016,8 +1016,8 @@ def get_dish_reviews(dish_id: int):
         from models.dish_review_model import DishReviewModel
         
         dish = DishModel.get_by_id(dish_id)
-    if not dish:
-        return error_response("菜品不存在", 404)
+        if not dish:
+            return error_response("菜品不存在", 404)
 
         page = request.args.get("page", 1, type=int)
         limit = request.args.get("limit", 20, type=int)
@@ -1038,23 +1038,23 @@ def add_dish_review(dish_id: int, _jwt_claims=None):
         from models.dish_review_model import DishReviewModel
         
         dish = DishModel.get_by_id(dish_id)
-    if not dish:
-        return error_response("菜品不存在", 404)
+        if not dish:
+            return error_response("菜品不存在", 404)
 
-    data = request.get_json(silent=True) or {}
-    rating = data.get("rating", 5)
-    content = data.get("content", "").strip()
+        data = request.get_json(silent=True) or {}
+        rating = data.get("rating", 5)
+        content = data.get("content", "").strip()
 
-    # 验证评分
-    if not isinstance(rating, int) or rating < 1 or rating > 5:
-        return error_response("评分必须是1-5之间的整数", 400)
+        # 验证评分
+        if not isinstance(rating, int) or rating < 1 or rating > 5:
+            return error_response("评分必须是1-5之间的整数", 400)
 
-    if not content:
-        return error_response("评论内容不能为空", 400)
+        if not content:
+            return error_response("评论内容不能为空", 400)
 
         # 获取用户ID
         token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    payload = decode_token(token)
+        payload = decode_token(token)
         user_id = payload.get('uid') if payload else None
 
         if not user_id:
