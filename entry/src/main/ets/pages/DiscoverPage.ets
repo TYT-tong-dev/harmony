@@ -579,34 +579,52 @@ export struct DiscoverPage {
           }, (post: Post) => post.id.toString())
 
           if (this.loadingMore) {
-            Row({ space: 8 }) {
+            Row({ space: 10 }) {
               LoadingProgress()
-                .width(24)
-                .height(24)
+                .width(20)
+                .height(20)
                 .color('#007DFF')
-              Text('加载中…')
+              Text('正在加载更多...')
                 .fontSize(14)
-                .fontColor('#666')
+                .fontColor('#888888')
             }
             .justifyContent(FlexAlign.Center)
             .width('100%')
-            .padding({ top: 16, bottom: 16 })
+            .padding({ top: 20, bottom: 20 })
           } else if (this.hasMore && this.posts.length > 0) {
-            Button('继续加载', { type: ButtonType.Normal, stateEffect: true })
-              .fontSize(14)
-              .fontColor('#007DFF')
-              .backgroundColor(Color.Transparent)
-              .margin({ top: 8 })
-              .onClick(() => {
-                this.onLoadMore();
-              })
+            Row() {
+              Button('点击加载更多', { type: ButtonType.Normal, stateEffect: true })
+                .fontSize(14)
+                .fontWeight(FontWeight.Medium)
+                .fontColor('#007DFF')
+                .backgroundColor('#F0F6FF')
+                .borderRadius(20)
+                .height(40)
+                .padding({ left: 24, right: 24 })
+                .onClick(() => {
+                  this.onLoadMore();
+                })
+            }
+            .width('100%')
+            .justifyContent(FlexAlign.Center)
+            .padding({ top: 16, bottom: 20 })
           } else if (!this.hasMore && this.posts.length > 0) {
-            Text('没有更多动态了')
-              .fontSize(14)
-              .fontColor('#999')
-              .textAlign(TextAlign.Center)
-              .width('100%')
-              .padding({ top: 16, bottom: 16 })
+            Row({ space: 8 }) {
+              Divider()
+                .strokeWidth(1)
+                .color('#E8E8E8')
+                .layoutWeight(1)
+              Text('已经到底啦')
+                .fontSize(13)
+                .fontColor('#BBBBBB')
+              Divider()
+                .strokeWidth(1)
+                .color('#E8E8E8')
+                .layoutWeight(1)
+            }
+            .width('80%')
+            .alignSelf(ItemAlign.Center)
+            .padding({ top: 20, bottom: 24 })
           }
         }
         .width('100%')
@@ -618,28 +636,60 @@ export struct DiscoverPage {
 
   @Builder
   EmptyPlaceholder() {
-    Column({ space: 12 }) {
-      Image($r('app.media.empty'))
-        .width(140)
-        .height(140)
-        .objectFit(ImageFit.Cover)
+    Column({ space: 16 }) {
+      // 空状态图标
+      Column() {
+        Text('📝')
+          .fontSize(64)
+      }
+      .width(120)
+      .height(120)
+      .borderRadius(60)
+      .backgroundColor('#F5F7FA')
+      .justifyContent(FlexAlign.Center)
 
-      Text('还没有帖子，发布一条吧～')
-        .fontSize(14)
-        .fontColor('#999')
+      Column({ space: 8 }) {
+        Text('还没有动态')
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#1A1A1A')
 
-      Button('立即发布', { type: ButtonType.Normal })
-        .backgroundColor('#007DFF')
-        .fontColor(Color.White)
-        .borderRadius(20)
-        .padding({ left: 20, right: 20 })
+        Text('分享你的美食故事吧～')
+          .fontSize(14)
+          .fontColor('#888888')
+      }
+
+      Button('立即发布', { type: ButtonType.Normal, stateEffect: true })
+        .width(160)
+        .height(46)
+        .fontSize(16)
+        .fontWeight(FontWeight.Medium)
+        .fontColor('#FFFFFF')
+        .borderRadius(23)
+        .linearGradient({
+          angle: 90,
+          colors: [['#FF6B6B', 0], ['#FF8E53', 1]]
+        })
+        .shadow({
+          radius: 12,
+          color: 'rgba(255,107,107,0.3)',
+          offsetX: 0,
+          offsetY: 4
+        })
+        .margin({ top: 8 })
         .onClick(() => {
-          this.showPostDialog = true;
+          try {
+            this.ensurePostFormInitialized();
+            this.showPostDialog = true;
+          } catch (error) {
+            console.error('打开发布对话框失败: ' + JSON.stringify(error));
+            ToastUtils.showToast('打开发布对话框失败，请重试');
+          }
         })
     }
     .width('100%')
     .alignItems(HorizontalAlign.Center)
-    .padding({ top: 40, bottom: 20 })
+    .padding({ top: 60, bottom: 40 })
   }
 
   private ensurePostFormInitialized(): void {
@@ -754,16 +804,25 @@ export struct DiscoverPage {
   }
 
   private buildSelectedMediaPreview(): SelectedMediaPreview[] {
-    const preview: SelectedMediaPreview[] = [];
-    const images: string[] = this.newPost?.images ?? [];
-    const videos: string[] = this.newPost?.videos ?? [];
-    images.forEach((path: string, index: number) => {
-      preview.push({ path, type: 'image', key: `image-${index}`, index });
-    });
-    videos.forEach((path: string, index: number) => {
-      preview.push({ path, type: 'video', key: `video-${index}`, index });
-    });
-    return preview;
+    try {
+      const preview: SelectedMediaPreview[] = [];
+      // 添加更强的空值检查，防止崩溃
+      if (!this.newPost) {
+        return preview;
+      }
+      const images: string[] = Array.isArray(this.newPost.images) ? this.newPost.images : [];
+      const videos: string[] = Array.isArray(this.newPost.videos) ? this.newPost.videos : [];
+      images.forEach((path: string, index: number) => {
+        preview.push({ path, type: 'image', key: `image-${index}`, index });
+      });
+      videos.forEach((path: string, index: number) => {
+        preview.push({ path, type: 'video', key: `video-${index}`, index });
+      });
+      return preview;
+    } catch (error) {
+      console.error('buildSelectedMediaPreview异常: ' + JSON.stringify(error));
+      return [];
+    }
   }
 
   private get mediaPreviewList(): SelectedMediaPreview[] {
@@ -772,13 +831,16 @@ export struct DiscoverPage {
 
   private removeMedia(type: 'image' | 'video', index: number): void {
     this.ensurePostFormInitialized();
+    if (!this.newPost) {
+      return;
+    }
     if (type === 'image') {
-      const sourceImages: string[] = this.newPost.images ?? [];
+      const sourceImages: string[] = Array.isArray(this.newPost.images) ? this.newPost.images : [];
       const newImages: string[] = sourceImages.slice();
       newImages.splice(index, 1);
       this.newPost.images = newImages;
     } else {
-      const sourceVideos: string[] = this.newPost.videos ?? [];
+      const sourceVideos: string[] = Array.isArray(this.newPost.videos) ? this.newPost.videos : [];
       const newVideos: string[] = sourceVideos.slice();
       newVideos.splice(index, 1);
       this.newPost.videos = newVideos;
@@ -830,6 +892,13 @@ export struct DiscoverPage {
     }
     if (path.startsWith('app.media.')) {
       return path;
+    }
+    // 如果是服务器图片路径(如images/dishes/xxx.jpg)，拼接服务器URL
+    if (path.startsWith('images/')) {
+      return `http://10.12.8.110:5000/${path}`;
+    }
+    if (path.startsWith('/images/')) {
+      return `http://10.12.8.110:5000${path}`;
     }
     if (path.startsWith('/')) {
       return path;
@@ -1155,9 +1224,10 @@ export struct DiscoverPage {
       }
 
       // 根据当前分类构建API请求
-      const categoryParam = this.activeCategory === '关注' ? '&category=关注' : 
-                          this.activeCategory === '附近' ? '&category=附近' : 
-                          '&category=推荐';
+      // 使用英文参数避免编码问题
+      const categoryParam = this.activeCategory === '关注' ? '&category=following' :
+                          this.activeCategory === '附近' ? '&category=nearby' :
+                          '&category=recommend';
       const response: ApiResponse = await ApiUtils.get(`/posts/list?page=${this.currentPage}&limit=10${categoryParam}`);
 
       if (response.statusCode === 200 && response.data) {
@@ -1206,16 +1276,16 @@ export struct DiscoverPage {
     }
   }
 
-  // 处理发布动态 - 使用非async方式避免崩溃
+  // 处理发布动态 - 同步方式避免崩溃
   private handlePublishPost(): void {
+    // 防止重复调用
+    if (this.posting) {
+      console.info('正在发布中，忽略重复点击');
+      return;
+    }
+
     try {
       console.info('handlePublishPost 开始执行');
-      
-      // 防止重复调用
-      if (this.posting) {
-        console.info('正在发布中，忽略重复点击');
-        return;
-      }
 
       // 确保表单已初始化
       this.ensurePostFormInitialized();
@@ -1224,6 +1294,7 @@ export struct DiscoverPage {
       if (!this.newPost) {
         console.error('发布表单未初始化');
         this.newPost = createEmptyPostForm();
+        return;
       }
       
       const content: string = (this.newPost.content || '').trim();
@@ -1236,22 +1307,8 @@ export struct DiscoverPage {
       this.posting = true;
       console.info('开始发布动态，内容: ' + content.substring(0, 20));
 
-      // 使用Promise链式调用代替async/await
-      this.doPublishPost(content)
-        .then(() => {
-          console.info('发布成功');
-          // posting状态在doPublishPost中已经处理，这里确保重置
-          this.posting = false;
-        })
-        .catch((error: Error) => {
-          console.error('发布失败: ' + JSON.stringify(error));
-          this.posting = false;
-          ToastUtils.showToast('发布失败，请重试');
-        })
-        .finally(() => {
-          // 确保posting状态被重置
-          this.posting = false;
-        });
+      // 直接调用发布逻辑
+      this.executePublishPost(content);
     } catch (error) {
       console.error('handlePublishPost 异常: ' + JSON.stringify(error));
       this.posting = false;
@@ -1259,23 +1316,14 @@ export struct DiscoverPage {
     }
   }
 
-  // 实际发布逻辑
-  private async doPublishPost(content: string): Promise<void> {
+  // 执行发布逻辑 - 使用回调方式避免async/await崩溃
+  private executePublishPost(content: string): void {
     try {
-      // 再次确保表单已初始化
-      this.ensurePostFormInitialized();
-      
-      // 验证内容
-      if (!content || content.trim().length === 0) {
-        ToastUtils.showToast('请输入动态内容');
-        return;
-      }
-      
-      // 安全获取图片和视频数组，防止undefined导致崩溃
+      // 安全获取图片和视频数组
       const images: string[] = (this.newPost?.images && Array.isArray(this.newPost.images)) ? this.newPost.images : [];
       const videos: string[] = (this.newPost?.videos && Array.isArray(this.newPost.videos)) ? this.newPost.videos : [];
       
-      // 将媒体路径转换为相对路径(用于数据库存储) - 增加空数组保护
+      // 将媒体路径转换为相对路径
       let payloadImages: string[] = [];
       let payloadVideos: string[] = [];
       try {
@@ -1289,7 +1337,6 @@ export struct DiscoverPage {
         }
       } catch (e) {
         console.error('构建路径失败: ' + JSON.stringify(e));
-        // 路径构建失败不影响发布，继续使用空数组
         payloadImages = [];
         payloadVideos = [];
       }
@@ -1299,12 +1346,11 @@ export struct DiscoverPage {
       const imageUrlsStr: string = combinedPayload.length > 0 ? combinedPayload.join(',') : '';
       
       // 安全截取标题
-      let title: string = '';
+      let title: string = content;
       try {
         title = content.length > 20 ? (content.substring(0, 20) + '...') : content;
       } catch (e) {
         console.error('截取标题失败: ' + JSON.stringify(e));
-        title = content;
       }
       
       const postData: CreatePostRequest = {
@@ -1316,9 +1362,28 @@ export struct DiscoverPage {
       };
 
       console.info('发送发布请求...');
-      const response: ApiResponse = await ApiUtils.post('/posts/create', postData);
-      console.info('发布响应: ' + JSON.stringify(response));
+      
+      // 使用回调方式处理API请求
+      ApiUtils.post('/posts/create', postData)
+        .then((response: ApiResponse) => {
+          console.info('发布响应: ' + JSON.stringify(response));
+          this.handlePublishResponse(response);
+        })
+        .catch((error: Error) => {
+          console.error('发布请求失败: ' + JSON.stringify(error));
+          this.posting = false;
+          ToastUtils.showToast('网络请求失败，请重试');
+        });
+    } catch (error) {
+      console.error('executePublishPost 异常: ' + JSON.stringify(error));
+      this.posting = false;
+      ToastUtils.showToast('发布异常，请重试');
+    }
+  }
 
+  // 处理发布响应
+  private handlePublishResponse(response: ApiResponse): void {
+    try {
       // 检查响应是否有效
       if (!response) {
         ToastUtils.showToast('网络请求失败，请检查网络连接');
@@ -1332,28 +1397,31 @@ export struct DiscoverPage {
         this.posting = false;
         this.resetNewPostForm();
         this.showPostDialog = false;
-        // 刷新列表 - 使用安全的方式
-        try {
-        this.loadPosts(true);
-        } catch (e) {
-          console.error('刷新列表失败: ' + JSON.stringify(e));
-          // 刷新失败不影响发布成功
-        }
+        // 延迟刷新列表，避免状态冲突
+        setTimeout(() => {
+          try {
+            this.loadPosts(true);
+          } catch (e) {
+            console.error('刷新列表失败: ' + JSON.stringify(e));
+          }
+        }, 100);
       } else {
         // 发布失败，重置状态
         this.posting = false;
-        const errorMsg = response.message || '发布失败';
+        const errorMsg: string = response.message || '发布失败';
         ToastUtils.showToast(errorMsg);
         console.error('发布失败:', errorMsg);
       }
     } catch (error) {
-      console.error('发布动态失败:' + JSON.stringify(error));
-      // 确保重置发布状态
+      console.error('handlePublishResponse 异常: ' + JSON.stringify(error));
       this.posting = false;
-      ToastUtils.showToast('发布失败，请重试');
-      // 不重新抛出错误，让上层Promise的catch处理
-      // 这样可以避免在ArkTS中抛出非Error类型的问题
+      ToastUtils.showToast('处理响应失败');
     }
+  }
+
+  // 实际发布逻辑 - 保留async版本以兼容
+  private async doPublishPost(content: string): Promise<void> {
+    this.executePublishPost(content);
   }
 
   // 发布动态 (保留原方法以兼容)
@@ -1497,29 +1565,6 @@ export struct DiscoverPage {
             this.DiscoverHeader()
             this.CategoryChips()
             this.PostFeedSection()
-
-            // 底部加载更多指示器
-            if (this.loadingMore) {
-              Row({ space: 8 }) {
-                LoadingProgress()
-                  .width(20)
-                  .height(20)
-                  .color('#007DFF')
-                Text('加载更多...')
-                  .fontSize(13)
-                  .fontColor('#999')
-              }
-              .width('100%')
-              .justifyContent(FlexAlign.Center)
-              .padding({ top: 16, bottom: 24 })
-            } else if (!this.hasMore && this.posts.length > 0) {
-              Text('— 已经到底啦 —')
-                .fontSize(13)
-                .fontColor('#CCCCCC')
-                .width('100%')
-                .textAlign(TextAlign.Center)
-                .padding({ top: 16, bottom: 24 })
-            }
           }
           .width('100%')
           .padding({ bottom: 32 })
@@ -1657,20 +1702,13 @@ export struct DiscoverPage {
         }
 
         // 昵称
-        Row({ space: 8 }) {
+        Column({ space: 4 }) {
           Text(post.username || '美食达人')
             .fontSize(16)
             .fontWeight(FontWeight.Bold)
             .fontColor('#1F1F1F')
-          // 用户标签
-          Text('美食家')
-            .fontSize(10)
-            .fontColor('#FFFFFF')
-            .backgroundColor('#FF6B00')
-            .borderRadius(8)
-            .padding({ left: 6, right: 6, top: 2, bottom: 2 })
         }
-        .alignItems(VerticalAlign.Center)
+        .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
 
         // 关注按钮
@@ -1721,9 +1759,10 @@ export struct DiscoverPage {
             .fontSize(13)
             .fontColor(post.isLiked ? '#FF3B30' : '#999')
         }
-        .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+        .height(36)
+        .padding({ left: 12, right: 12 })
         .backgroundColor(post.isLiked ? '#FFF0F0' : '#F8F8F8')
-        .borderRadius(16)
+        .borderRadius(18)
         .onClick(() => {
           this.toggleLike(post);
         })
@@ -1738,9 +1777,10 @@ export struct DiscoverPage {
             .fontSize(13)
             .fontColor('#999')
         }
-        .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+        .height(36)
+        .padding({ left: 12, right: 12 })
         .backgroundColor('#F8F8F8')
-        .borderRadius(16)
+        .borderRadius(18)
         .margin({ left: 12 })
         .onClick(() => {
           this.showComments(post);
@@ -1758,13 +1798,17 @@ export struct DiscoverPage {
             .fontSize(13)
             .fontColor('#999')
         }
-        .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+        .height(36)
+        .padding({ left: 12, right: 12 })
+        .backgroundColor('#F8F8F8')
+        .borderRadius(18)
         .onClick(() => {
           this.showSharePostDialog(post);
         })
       }
       .width('100%')
-      .margin({ top: 4 })
+      .height(44)
+      .margin({ top: 8 })
     }
     .width('100%')
     .padding(16)
@@ -1784,21 +1828,23 @@ export struct DiscoverPage {
     if (!images || images.length === 0) {
       Column() {};
     } else if (images.length === 1) {
+      // 单张图片 - 自适应高度，设置最大高度限制
       Image(this.normalizePostImagePath(images[0]))
         .width('100%')
-        .height(240)
-        .objectFit(ImageFit.Cover)
+        .constraintSize({ maxHeight: 300 })
+        .objectFit(ImageFit.Contain)
         .borderRadius(12)
+        .backgroundColor('#F5F5F5')
     } else if (images.length === 2) {
       Row({ space: 8 }) {
         Image(this.normalizePostImagePath(images[0]))
-          .width('50%')
-          .height(180)
+          .layoutWeight(1)
+          .aspectRatio(1)
           .objectFit(ImageFit.Cover)
           .borderRadius(12)
         Image(this.normalizePostImagePath(images[1]))
-          .width('50%')
-          .height(180)
+          .layoutWeight(1)
+          .aspectRatio(1)
           .objectFit(ImageFit.Cover)
           .borderRadius(12)
       }
@@ -1807,52 +1853,50 @@ export struct DiscoverPage {
       Column({ space: 8 }) {
         Image(this.normalizePostImagePath(images[0]))
           .width('100%')
-          .height(180)
+          .aspectRatio(1.5)
           .objectFit(ImageFit.Cover)
           .borderRadius(12)
         Row({ space: 8 }) {
           Image(this.normalizePostImagePath(images[1]))
-            .width('50%')
-            .height(120)
+            .layoutWeight(1)
+            .aspectRatio(1)
             .objectFit(ImageFit.Cover)
             .borderRadius(12)
           Image(this.normalizePostImagePath(images[2]))
-            .width('50%')
-            .height(120)
+            .layoutWeight(1)
+            .aspectRatio(1)
             .objectFit(ImageFit.Cover)
             .borderRadius(12)
         }
       }
       .width('100%')
     } else {
-      Grid() {
+      // 多图使用Flex布局，自适应高度
+      Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start }) {
         ForEach(images.slice(0, 9), (image: string, index: number) => {
-          GridItem() {
-            Stack({ alignContent: Alignment.Center }) {
-              Image(this.normalizePostImagePath(image))
+          Stack({ alignContent: Alignment.Center }) {
+            Image(this.normalizePostImagePath(image))
+              .width('100%')
+              .height('100%')
+              .objectFit(ImageFit.Cover)
+              .borderRadius(8)
+            if (images.length > 9 && index === 8) {
+              Text(`+${images.length - 9}`)
+                .fontSize(16)
+                .fontColor(Color.White)
+                .fontWeight(FontWeight.Bold)
+                .backgroundColor('#66000000')
                 .width('100%')
                 .height('100%')
-                .objectFit(ImageFit.Cover)
+                .textAlign(TextAlign.Center)
                 .borderRadius(8)
-              if (images.length > 9 && index === 8) {
-                Text(`+${images.length - 9}`)
-                  .fontSize(16)
-                  .fontColor(Color.White)
-                  .fontWeight(FontWeight.Bold)
-                  .backgroundColor('#66000000')
-                  .width('100%')
-                  .height('100%')
-                  .textAlign(TextAlign.Center)
-                  .borderRadius(8)
-              }
             }
           }
+          .width('31%')
+          .aspectRatio(1)
+          .margin({ right: index % 3 !== 2 ? '3.5%' : 0, bottom: 8 })
         }, (image: string, index: number) => `${image}-${index}`)
       }
-      .columnsTemplate('1fr 1fr 1fr')
-      .rowsTemplate('auto')
-      .columnsGap(6)
-      .rowsGap(6)
       .width('100%')
     }
   }
@@ -1867,7 +1911,7 @@ export struct DiscoverPage {
           Stack({ alignContent: Alignment.Center }) {
             Video({ src: this.normalizePostImagePath(video), previewUri: '' })
               .width('100%')
-              .height(240)
+              .aspectRatio(16/9)
               .controls(true)
               .autoPlay(false)
               .loop(false)
@@ -1969,7 +2013,9 @@ export struct DiscoverPage {
         .enabled(!this.posting)
         .onChange((value: string) => {
           this.ensurePostFormInitialized();
-          this.newPost.content = value;
+          if (this.newPost) {
+            this.newPost.content = value;
+          }
         })
 
       Row() {
@@ -1993,10 +2039,10 @@ export struct DiscoverPage {
       .width('100%')
       .padding({ left: 16, right: 16, bottom: 8 })
 
-      if (this.mediaPreviewList.length > 0) {
+      if (this.buildSelectedMediaPreview().length > 0) {
         Scroll() {
           Row() {
-            ForEach(this.mediaPreviewList, (media: SelectedMediaPreview, index: number) => {
+            ForEach(this.buildSelectedMediaPreview(), (media: SelectedMediaPreview, index: number) => {
               Stack() {
                 if (media.type === 'image') {
                   Image(this.normalizePostImagePath(media.path))
@@ -2320,13 +2366,13 @@ export struct DiscoverPage {
   @Builder
   CommentDialog() {
     Column() {
-      // 标题栏
+      // 标题栏 - 美化样式
       Row() {
-        Button('关闭')
-          .fontSize(16)
-          .fontColor('#666')
+        Button('关闭', { type: ButtonType.Normal, stateEffect: true })
+          .fontSize(15)
+          .fontColor('#666666')
           .backgroundColor(Color.Transparent)
-          .borderColor(Color.Transparent)
+          .height(36)
           .onClick(() => {
             this.showCommentDialog = false;
             this.currentPost = null;
@@ -2334,238 +2380,358 @@ export struct DiscoverPage {
             this.commentContent = '';
           })
 
-        Text('评论')
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .layoutWeight(1)
-          .textAlign(TextAlign.Center)
+        Row({ space: 6 }) {
+          Text('💬')
+            .fontSize(18)
+          Text('评论')
+            .fontSize(18)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#1A1A1A')
+        }
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+
+        // 占位，保持标题居中
+        Column()
+          .width(50)
       }
       .width('100%')
-      .padding(16)
-      .border({ width: { bottom: 1 }, color: '#EEE' })
+      .padding({ left: 12, right: 12, top: 16, bottom: 12 })
+
+      // 评论数量
+      Row() {
+        Text(`共 ${this.comments.length} 条评论`)
+          .fontSize(13)
+          .fontColor('#888888')
+      }
+      .width('100%')
+      .padding({ left: 20, right: 20, bottom: 8 })
+
+      Divider()
+        .strokeWidth(0.5)
+        .color('#F0F0F0')
 
       // 评论列表
       Scroll() {
         Column() {
           if (this.comments.length === 0) {
-            Text('暂无评论，快来抢沙发吧~')
-              .fontSize(14)
-              .fontColor('#999')
-              .textAlign(TextAlign.Center)
-              .width('100%')
-              .padding(40)
+            Column({ space: 12 }) {
+              Text('💭')
+                .fontSize(48)
+              Text('暂无评论')
+                .fontSize(16)
+                .fontWeight(FontWeight.Medium)
+                .fontColor('#666666')
+              Text('快来抢沙发吧~')
+                .fontSize(14)
+                .fontColor('#999999')
+            }
+            .width('100%')
+            .padding({ top: 60, bottom: 60 })
+            .alignItems(HorizontalAlign.Center)
           } else {
-            ForEach(this.comments, (comment: Comment) => {
-              this.CommentItem(comment)
+            ForEach(this.comments, (comment: Comment, index: number) => {
+              this.CommentItem(comment, index)
             }, (comment: Comment) => comment.id.toString())
           }
         }
         .width('100%')
-        .padding(16)
+        .padding({ left: 16, right: 16, top: 8 })
       }
       .layoutWeight(1)
       .scrollable(ScrollDirection.Vertical)
       .scrollBar(BarState.Off)
 
-      // 评论输入区
-      Row() {
-        TextArea({ placeholder: '写评论...', text: this.commentContent })
-          .fontSize(15)
-          .fontColor('#333')
-          .backgroundColor('#F5F5F5')
-          .borderRadius(20)
-          .layoutWeight(1)
-          .height(40)
-          .padding({ left: 16, right: 16, top: 8, bottom: 8 })
-          .onChange((value: string) => {
-            this.commentContent = value;
-          })
+      // 评论输入区 - 美化样式
+      Row({ space: 12 }) {
+        Row() {
+          TextArea({ placeholder: '写下你的评论...', text: this.commentContent })
+            .fontSize(15)
+            .fontColor('#333333')
+            .backgroundColor(Color.Transparent)
+            .layoutWeight(1)
+            .height(40)
+            .padding({ left: 4, right: 4 })
+            .onChange((value: string) => {
+              this.commentContent = value;
+            })
+        }
+        .layoutWeight(1)
+        .height(44)
+        .padding({ left: 16, right: 16 })
+        .backgroundColor('#F5F7FA')
+        .borderRadius(22)
 
-        Button('发送')
+        Button('发送', { type: ButtonType.Normal, stateEffect: true })
           .fontSize(15)
-          .fontColor(this.commentContent.trim() ? '#007DFF' : '#CCC')
-          .backgroundColor(Color.Transparent)
-          .borderColor(Color.Transparent)
+          .fontWeight(FontWeight.Medium)
+          .fontColor('#FFFFFF')
+          .backgroundColor(this.commentContent.trim() ? '#007DFF' : '#CCCCCC')
+          .borderRadius(20)
+          .height(40)
+          .padding({ left: 20, right: 20 })
           .enabled(!!this.commentContent.trim())
-          .margin({ left: 8 })
           .onClick(() => {
             this.addComment();
           })
       }
       .width('100%')
-      .padding(16)
-      .backgroundColor(Color.White)
-      .border({ width: { top: 1 }, color: '#EEE' })
+      .padding({ left: 16, right: 16, top: 12, bottom: 16 })
+      .backgroundColor('#FFFFFF')
+      .shadow({
+        radius: 8,
+        color: 'rgba(0,0,0,0.05)',
+        offsetX: 0,
+        offsetY: -2
+      })
     }
     .width('100%')
-    .height('70%')
-    .backgroundColor(Color.White)
-    .borderRadius({ topLeft: 16, topRight: 16 })
-    .position({ x: 0, y: '30%' })
+    .height('75%')
+    .backgroundColor('#FFFFFF')
+    .borderRadius({ topLeft: 24, topRight: 24 })
+    .position({ x: 0, y: '25%' })
     .shadow({
-      radius: 24,
-      color: '#40000000',
+      radius: 30,
+      color: 'rgba(0,0,0,0.2)',
       offsetX: 0,
-      offsetY: -8
+      offsetY: -10
     })
   }
 
-  // 评论项组件
+  // 评论项组件 - 美化样式
   @Builder
-  CommentItem(comment: Comment) {
-    Row() {
-      Image(comment.avatar || $r('app.media.ic_user_avatar'))
-        .width(32)
-        .height(32)
-        .borderRadius(16)
-        .objectFit(ImageFit.Cover)
-
-      Column() {
-        Text(comment.username)
-          .fontSize(14)
-          .fontWeight(FontWeight.Medium)
-          .fontColor('#333')
-
-        Text(comment.content)
-          .fontSize(14)
-          .fontColor('#333')
-          .width('100%')
-          .margin({ top: 4 })
-          .lineHeight(20)
+  CommentItem(comment: Comment, index: number) {
+    Row({ space: 12 }) {
+      // 头像
+      Stack() {
+        Image(comment.avatar || $r('app.media.ic_user_avatar'))
+          .width(40)
+          .height(40)
+          .borderRadius(20)
+          .objectFit(ImageFit.Cover)
       }
-      .margin({ left: 12 })
+
+      Column({ space: 6 }) {
+        // 用户名和时间
+        Row() {
+          Text(comment.username)
+            .fontSize(14)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#1A1A1A')
+
+          if (index === 0) {
+            Text('沙发')
+              .fontSize(10)
+              .fontColor('#FFFFFF')
+              .backgroundColor('#FF9500')
+              .borderRadius(8)
+              .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+              .margin({ left: 8 })
+          }
+        }
+
+        // 评论内容
+        Text(comment.content)
+          .fontSize(15)
+          .fontColor('#333333')
+          .width('100%')
+          .lineHeight(22)
+      }
       .alignItems(HorizontalAlign.Start)
       .layoutWeight(1)
     }
     .width('100%')
     .alignItems(VerticalAlign.Top)
-    .padding({ top: 12, bottom: 12 })
-    .border({ width: { bottom: 1 }, color: '#F0F0F0' })
+    .padding(14)
+    .margin({ bottom: 8 })
+    .backgroundColor('#FAFAFA')
+    .borderRadius(14)
   }
 
-  // 分享对话框组件
+  // 分享对话框组件 - 美化样式
   @Builder
   ShareDialog() {
     Column() {
+      // 顶部拖动条
+      Column()
+        .width(40)
+        .height(4)
+        .borderRadius(2)
+        .backgroundColor('#E0E0E0')
+        .margin({ top: 12, bottom: 8 })
+
       // 标题栏
       Row() {
-        Text('分享给好友')
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .layoutWeight(1)
-          .textAlign(TextAlign.Center)
-
-        Button('×')
-          .fontSize(24)
-          .fontColor('#666')
-          .backgroundColor(Color.Transparent)
-          .borderColor(Color.Transparent)
+        Column()
           .width(40)
-          .height(40)
-          .onClick(() => {
-            this.showShareDialog = false;
-            this.sharePost = null;
-          })
+
+        Row({ space: 6 }) {
+          Text('📤')
+            .fontSize(18)
+          Text('分享给好友')
+            .fontSize(18)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#1A1A1A')
+        }
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+
+        Button({ type: ButtonType.Circle, stateEffect: true }) {
+          Text('×')
+            .fontSize(20)
+            .fontColor('#666666')
+        }
+        .width(36)
+        .height(36)
+        .backgroundColor('#F5F5F5')
+        .onClick(() => {
+          this.showShareDialog = false;
+          this.sharePost = null;
+        })
       }
       .width('100%')
-      .padding({ left: 16, right: 8, top: 12, bottom: 12 })
-      .border({ width: { bottom: 1 }, color: '#EEE' })
+      .padding({ left: 16, right: 16, top: 8, bottom: 16 })
 
       // 分享内容预览
       if (this.sharePost) {
-        Row() {
-          Column() {
-            Text(this.sharePost.username)
-              .fontSize(13)
-              .fontColor('#666')
-              .maxLines(1)
+        Row({ space: 12 }) {
+          Column({ space: 6 }) {
+            Row({ space: 6 }) {
+              Text('来自')
+                .fontSize(12)
+                .fontColor('#888888')
+              Text(this.sharePost.username)
+                .fontSize(13)
+                .fontWeight(FontWeight.Medium)
+                .fontColor('#1A1A1A')
+            }
             Text(this.sharePost.content)
               .fontSize(14)
-              .fontColor('#333')
+              .fontColor('#333333')
               .maxLines(2)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
-              .margin({ top: 4 })
+              .lineHeight(20)
           }
           .alignItems(HorizontalAlign.Start)
           .layoutWeight(1)
 
           if (this.sharePost.images && this.sharePost.images.length > 0) {
             Image(this.normalizePostImagePath(this.sharePost.images[0]))
-              .width(50)
-              .height(50)
-              .borderRadius(6)
+              .width(60)
+              .height(60)
+              .borderRadius(10)
               .objectFit(ImageFit.Cover)
-              .margin({ left: 12 })
           }
         }
         .width('100%')
-        .padding(12)
-        .backgroundColor('#F8F8F8')
-        .borderRadius(8)
-        .margin(16)
+        .padding(14)
+        .backgroundColor('#F8F9FA')
+        .borderRadius(14)
+        .margin({ left: 16, right: 16, bottom: 16 })
       }
+
+      Divider()
+        .strokeWidth(0.5)
+        .color('#F0F0F0')
+
+      // 好友列表标题
+      Row() {
+        Text('选择好友')
+          .fontSize(14)
+          .fontColor('#888888')
+      }
+      .width('100%')
+      .padding({ left: 20, right: 20, top: 12, bottom: 8 })
 
       // 好友列表
       if (this.shareLoading) {
-        LoadingProgress()
-          .width(40)
-          .height(40)
-          .margin({ top: 40 })
+        Column({ space: 12 }) {
+          LoadingProgress()
+            .width(36)
+            .height(36)
+            .color('#007DFF')
+          Text('加载中...')
+            .fontSize(14)
+            .fontColor('#888888')
+        }
+        .width('100%')
+        .padding({ top: 40, bottom: 40 })
+        .alignItems(HorizontalAlign.Center)
       } else if (this.shareFriends.length === 0) {
-        Text('暂无好友')
-          .fontSize(14)
-          .fontColor('#999')
-          .textAlign(TextAlign.Center)
-          .width('100%')
-          .padding(40)
+        Column({ space: 12 }) {
+          Text('👥')
+            .fontSize(48)
+          Text('暂无好友')
+            .fontSize(16)
+            .fontWeight(FontWeight.Medium)
+            .fontColor('#666666')
+          Text('关注更多用户来添加好友吧')
+            .fontSize(14)
+            .fontColor('#999999')
+        }
+        .width('100%')
+        .padding({ top: 40, bottom: 40 })
+        .alignItems(HorizontalAlign.Center)
       } else {
         List() {
           ForEach(this.shareFriends, (friend: ShareFriend) => {
             ListItem() {
-              Row() {
+              Row({ space: 12 }) {
+                // 头像
                 Image(friend.avatar.startsWith('app.media.')
                   ? $r(friend.avatar)
                   : (friend.avatar || $r('app.media.ic_user_avatar')))
-                  .width(44)
-                  .height(44)
-                  .borderRadius(22)
+                  .width(48)
+                  .height(48)
+                  .borderRadius(24)
                   .objectFit(ImageFit.Cover)
+                  .border({ width: 2, color: '#F0F0F0' })
 
+                // 用户名
                 Text(friend.username)
                   .fontSize(16)
-                  .fontColor('#333')
-                  .margin({ left: 12 })
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor('#1A1A1A')
                   .layoutWeight(1)
 
-                Button('发送')
+                // 发送按钮
+                Button('发送', { type: ButtonType.Normal, stateEffect: true })
                   .fontSize(14)
-                  .fontColor(Color.White)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor('#FFFFFF')
                   .backgroundColor('#007DFF')
-                  .borderRadius(16)
-                  .height(32)
+                  .borderRadius(18)
+                  .height(36)
+                  .padding({ left: 20, right: 20 })
                   .onClick(() => {
                     this.shareToFriend(friend);
                   })
               }
               .width('100%')
-              .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+              .padding({ left: 16, right: 16, top: 10, bottom: 10 })
             }
           }, (friend: ShareFriend) => friend.id.toString())
         }
         .layoutWeight(1)
         .width('100%')
+        .divider({
+          strokeWidth: 0.5,
+          color: '#F5F5F5',
+          startMargin: 76,
+          endMargin: 16
+        })
       }
     }
     .width('100%')
-    .height('60%')
-    .backgroundColor(Color.White)
-    .borderRadius({ topLeft: 16, topRight: 16 })
-    .position({ x: 0, y: '40%' })
+    .height('65%')
+    .backgroundColor('#FFFFFF')
+    .borderRadius({ topLeft: 24, topRight: 24 })
+    .position({ x: 0, y: '35%' })
     .shadow({
-      radius: 24,
-      color: '#40000000',
+      radius: 30,
+      color: 'rgba(0,0,0,0.2)',
       offsetX: 0,
-      offsetY: -8
+      offsetY: -10
     })
   }
 

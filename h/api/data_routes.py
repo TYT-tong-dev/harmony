@@ -301,6 +301,26 @@ def add_dish(_jwt_claims=None):
         return error_response(f"添加菜品失败: {str(e)}", 500)
 
 
+@data_bp.route("/dishes/<int:dish_id>", methods=["DELETE"])
+@login_required
+def delete_dish(dish_id, _jwt_claims=None):
+    """删除菜品"""
+    try:
+        # 检查菜品是否存在
+        dish = DishModel.get_by_id(dish_id)
+        if not dish:
+            return error_response("菜品不存在", 404)
+        
+        # 删除菜品
+        success = DishModel.delete(dish_id)
+        if success:
+            return success_response("删除菜品成功", {"id": dish_id})
+        else:
+            return error_response("删除菜品失败", 500)
+    except Exception as e:
+        return error_response(f"删除菜品失败: {str(e)}", 500)
+
+
 # -----------------------------
 # Cart & Order Endpoints
 # -----------------------------
@@ -572,7 +592,18 @@ def get_posts():
     try:
         page = int(request.args.get("page", 1))
         limit = int(request.args.get("limit", 10))
-        category = request.args.get("category", "推荐")  # 支持: 推荐、附近、关注
+        category_raw = request.args.get("category", "recommend")
+        
+        # 支持英文和中文参数
+        category_map = {
+            "recommend": "推荐",
+            "nearby": "附近", 
+            "following": "关注",
+            "推荐": "推荐",
+            "附近": "附近",
+            "关注": "关注"
+        }
+        category = category_map.get(category_raw, "推荐")
 
         # 获取当前用户ID，添加关注状态
         token = request.headers.get('Authorization', '').replace('Bearer ', '')
@@ -581,8 +612,12 @@ def get_posts():
 
         # 获取关注用户ID列表（如果是"关注"分类）
         following_ids = None
-        if category == "关注" and current_user_id:
-            following_ids = FollowModel.get_following_ids(current_user_id)
+        if category == "关注":
+            if current_user_id:
+                following_ids = FollowModel.get_following_ids(current_user_id)
+            else:
+                # 未登录时返回空列表
+                following_ids = []
 
         # 从数据库获取帖子
         result = PostModel.get_list(
@@ -1437,3 +1472,5 @@ def delete_notification(_jwt_claims=None):
             return error_response("通知不存在或无权操作", 404)
     except Exception as e:
         return error_response(f"删除失败: {str(e)}", 500)
+
+

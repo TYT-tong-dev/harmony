@@ -54,7 +54,7 @@ export struct HomePage {
   @StorageLink('cartTotalAmount') cartTotalAmount: number = 0;
   
   // 菜品分类
-  @State categories: string[] = ['全部', '热菜', '凉菜', '主食', '汤类', '饮料', '甜品', '招牌菜'];
+  @State categories: string[] = ['全部', '热菜', '凉菜', '汤品', '主食', '饮料', '甜品'];
   
   // 是否显示添加菜品对话框
   @State showAddDishDialog: boolean = false;
@@ -320,7 +320,7 @@ export struct HomePage {
           })
 
         Column() {
-          Text(this.shopInfo.shop_name || this.shopInfo.name || '美味餐厅')
+          Text(this.shopInfo.shop_name || this.shopInfo.name || '食光记')
             .fontSize(20)
             .fontWeight(FontWeight.Bold)
             .fontColor('#1A1A1A')
@@ -1709,24 +1709,66 @@ export struct HomePage {
       return;
     }
     const dishId = this.selectedDish.id;
-    const current = this.getDishReviews(dishId);
-    const newReview: DishReview = {
-      id: Date.now(),
-      user: '匿名食客',
-      rating: this.reviewRating,
-      content,
-      createdAt: Date.now(),
-      highlights: ['口味', '服务']
-    };
-    const updated: DishReview[] = current.concat(newReview);
-    if (!this.dishReviewStore) {
-      this.dishReviewStore = {};
+    const rating = this.reviewRating;
+
+    // 保存到数据库
+    interface ReviewRequest {
+      rating: number;
+      content: string;
     }
-    this.dishReviewStore[dishId] = updated;
-    this.reviewContent = '';
-    this.reviewRating = 5;
-    this.recalculateDishRating(dishId, updated);
-    ToastUtils.showToast('感谢您的评价');
+    const requestData: ReviewRequest = {
+      rating: rating,
+      content: content
+    };
+
+    ApiUtils.post(`/dishes/${dishId}/reviews`, requestData)
+      .then((response: ApiResponse) => {
+        if (response.statusCode === 200) {
+          // 更新本地状态
+          const current = this.getDishReviews(dishId);
+          const newReview: DishReview = {
+            id: Date.now(),
+            user: AppStorage.get<string>('username') || '匿名食客',
+            rating: rating,
+            content: content,
+            createdAt: Date.now(),
+            highlights: ['口味', '服务']
+          };
+          const updated: DishReview[] = current.concat(newReview);
+          if (!this.dishReviewStore) {
+            this.dishReviewStore = {};
+          }
+          this.dishReviewStore[dishId] = updated;
+          this.reviewContent = '';
+          this.reviewRating = 5;
+          this.recalculateDishRating(dishId, updated);
+          ToastUtils.showToast('感谢您的评价');
+        } else {
+          ToastUtils.showToast(response.message || '评价提交失败');
+        }
+      })
+      .catch((error: Error) => {
+        console.error('提交评价失败: ' + error.message);
+        // 即使网络失败，也保存到本地
+        const current = this.getDishReviews(dishId);
+        const newReview: DishReview = {
+          id: Date.now(),
+          user: '匿名食客',
+          rating: rating,
+          content: content,
+          createdAt: Date.now(),
+          highlights: ['口味', '服务']
+        };
+        const updated: DishReview[] = current.concat(newReview);
+        if (!this.dishReviewStore) {
+          this.dishReviewStore = {};
+        }
+        this.dishReviewStore[dishId] = updated;
+        this.reviewContent = '';
+        this.reviewRating = 5;
+        this.recalculateDishRating(dishId, updated);
+        ToastUtils.showToast('评价已保存（离线模式）');
+      });
   }
 
   private recalculateDishRating(dishId: number, reviews: DishReview[]) {
@@ -2209,6 +2251,9 @@ export struct HomePage {
     }
   }
 
+  // 服务器基础地址（用于图片）
+  private static readonly IMAGE_SERVER_URL: string = 'http://10.12.8.110:5000';
+
   private normalizeDishImagePath(path: string): string {
     if (!path) {
       return '';
@@ -2218,7 +2263,7 @@ export struct HomePage {
     if (path.startsWith('app.media.')) {
       return path;
     }
-    // HTTP/HTTPS URL
+    // HTTP/HTTPS URL - 已经是完整URL
     if (lower.startsWith('http://') || lower.startsWith('https://')) {
       return path;
     }
@@ -2226,7 +2271,15 @@ export struct HomePage {
     if (lower.startsWith('file://')) {
       return path.replace('file://', '');
     }
-    // 绝对路径
+    // 服务器相对路径(如/images/dishes/xxx.jpg) - 需要加上服务器地址
+    if (path.startsWith('/images/')) {
+      return `${HomePage.IMAGE_SERVER_URL}${path}`;
+    }
+    // 服务器相对路径(如images/dishes/xxx.jpg，没有前导斜杠) - 需要加上服务器地址和斜杠
+    if (path.startsWith('images/')) {
+      return `${HomePage.IMAGE_SERVER_URL}/${path}`;
+    }
+    // 其他绝对路径
     if (path.startsWith('/')) {
       return path;
     }
@@ -2302,7 +2355,9 @@ export struct HomePage {
       const response: ApiResponse = await ApiUtils.get('/dishes/list');
 
       if (response.statusCode === 200 && response.data) {
-        const dishesData = response.data as DishListResponse[];
+        // 后端返回格式为 {dishes: [...]}，需要提取dishes数组
+        const responseData = response.data as Record<string, Object>;
+        const dishesData = (responseData.dishes || responseData) as DishListResponse[];
         if (Array.isArray(dishesData)) {
           this.dishes = dishesData.map((item: DishListResponse) => {
             const dish = new Dish();
@@ -2413,6 +2468,52 @@ export struct HomePage {
       this.cartTotalAmount = localSummary.amount;
       CartSyncManager.updateCartQuantity(this.cartItemCount);
       CartSyncManager.updateCartTotalAmount(this.cartTotalAmount);
+    }
+  }
+
+  // 确认删除菜品
+  private confirmDeleteDish(dish: Dish): void {
+    AlertDialog.show({
+      title: '删除菜品',
+      message: `确定要删除"${dish.name}"吗？此操作不可恢复。`,
+      autoCancel: true,
+      alignment: DialogAlignment.Center,
+      primaryButton: {
+        value: '取消',
+        action: () => {
+          console.info('取消删除菜品');
+        }
+      },
+      secondaryButton: {
+        value: '删除',
+        fontColor: '#FF3B30',
+        action: () => {
+          this.deleteDish(dish);
+        }
+      }
+    });
+  }
+
+  // 删除菜品
+  private async deleteDish(dish: Dish): Promise<void> {
+    if (!dish || !dish.id || dish.id <= 0) {
+      ToastUtils.showToast('无法删除示例菜品');
+      return;
+    }
+
+    try {
+      const response: ApiResponse = await ApiUtils.delete(`/dishes/${dish.id}`);
+
+      if (response.statusCode === 200) {
+        ToastUtils.showToast(`已删除"${dish.name}"`);
+        // 从本地列表中移除
+        this.dishes = this.dishes.filter((d: Dish) => d.id !== dish.id);
+      } else {
+        ToastUtils.showToast(response.message || '删除失败');
+      }
+    } catch (error) {
+      console.error('删除菜品失败:' + JSON.stringify(error));
+      ToastUtils.showToast('删除失败，请重试');
     }
   }
 

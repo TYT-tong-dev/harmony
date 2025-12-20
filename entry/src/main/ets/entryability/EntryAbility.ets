@@ -26,10 +26,18 @@ export default class EntryAbility extends UIAbility {
     // 设置颜色模式
     this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
 
-    // 初始化应用数据
-    AppStorage.setOrCreate('isLoggedIn', false);
-    AppStorage.setOrCreate('userToken', '');
-    AppStorage.setOrCreate('userInfo', '{}');
+    // 使用PersistentStorage持久化关键数据（登录状态、Token、用户信息、登录时间）
+    // PersistentStorage会自动将数据持久化到磁盘，应用重启后自动恢复
+    PersistentStorage.persistProp('isLoggedIn', false);
+    PersistentStorage.persistProp('userToken', '');
+    PersistentStorage.persistProp('userInfo', '{}');
+    PersistentStorage.persistProp('localCartItems', '[]');
+    PersistentStorage.persistProp('loginTimestamp', 0); // 登录时间戳
+
+    // 检查登录是否过期（7天有效期）
+    this.checkLoginExpiry();
+
+    // 非持久化数据使用AppStorage
     AppStorage.setOrCreate('cartItems', '[]');
     AppModeManager.ensureInitialized();
     if (!AppStorage.get<AppMode>('appMode')) {
@@ -106,6 +114,32 @@ export default class EntryAbility extends UIAbility {
 
       // 将跳转信息存储到 AppStorage 供页面消费
       AppStorage.setOrCreate('pendingNotification', JSON.stringify(this.pendingNotification));
+    }
+  }
+
+  // 检查登录是否过期（7天有效期）
+  private checkLoginExpiry(): void {
+    const LOGIN_EXPIRY_DAYS = 7;
+    const LOGIN_EXPIRY_MS = LOGIN_EXPIRY_DAYS * 24 * 60 * 60 * 1000; // 7天的毫秒数
+
+    const isLoggedIn = AppStorage.get<boolean>('isLoggedIn') || false;
+    const loginTimestamp = AppStorage.get<number>('loginTimestamp') || 0;
+
+    if (isLoggedIn && loginTimestamp > 0) {
+      const currentTime = Date.now();
+      const timeSinceLogin = currentTime - loginTimestamp;
+
+      if (timeSinceLogin > LOGIN_EXPIRY_MS) {
+        // 登录已过期，清除登录状态
+        hilog.info(DOMAIN, 'testTag', '登录已过期，需要重新登录');
+        AppStorage.setOrCreate('isLoggedIn', false);
+        AppStorage.setOrCreate('userToken', '');
+        AppStorage.setOrCreate('userInfo', '{}');
+        AppStorage.setOrCreate('loginTimestamp', 0);
+      } else {
+        const remainingDays = Math.ceil((LOGIN_EXPIRY_MS - timeSinceLogin) / (24 * 60 * 60 * 1000));
+        hilog.info(DOMAIN, 'testTag', '登录状态有效，剩余 %{public}d 天', remainingDays);
+      }
     }
   }
 

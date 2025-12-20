@@ -7,28 +7,39 @@ import { AppModeManager } from '../common/Utils';
 struct Index {
   @State opacityValue: number = 0;
   @StorageLink('appMode') appMode: AppMode = AppMode.MERCHANT;
+  @StorageLink('isLoggedIn') isLoggedIn: boolean = false;
+  @StorageLink('userToken') userToken: string = '';
 
   aboutToAppear() {
     AppModeManager.ensureInitialized();
-    
+
     // 检查是否有扫码进入的桌号信息
     const params = router.getParams() as Record<string, Object> | undefined;
     const tableId = params?.['tableId'] as string | undefined;
-    
+
     if (tableId) {
       // 从扫码进入，设置顾客模式和桌号
       AppModeManager.setMode(AppMode.CUSTOMER, { tableId: tableId });
       AppStorage.setOrCreate('currentTableId', tableId);
-      // 跳转到登录页面
+      // 跳转到顾客登录页面
       setTimeout(() => {
         router.replaceUrl({
-          url: 'pages/LoginPage',
-          params: { tableId: tableId, fromScan: true }
+          url: 'pages/CustomerLoginPage',
+          params: { tableId: tableId }
         });
       }, 500);
       return;
     }
-    
+
+    // 检查是否已登录（持久化的登录状态）
+    if (this.isLoggedIn && this.userToken) {
+      // 已登录，直接跳转到主页
+      setTimeout(() => {
+        this.navigateToMainDirect();
+      }, 300);
+      return;
+    }
+
     if (this.appMode === AppMode.CUSTOMER && AppModeManager.isCustomerSessionActive()) {
       this.navigateToMainDirect();
       return;

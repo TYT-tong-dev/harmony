@@ -36,6 +36,9 @@ struct DishDetailPage {
   @State myReviewContent: string = '';
   @State isSubmitting: boolean = false;
   @State myReview: ReviewData | null = null; // 当前用户的评价
+  @State quickRating: number = 0; // 快速评分（点击星星）
+  @State showDeleteConfirm: boolean = false; // 显示删除确认
+  private static readonly IMAGE_SERVER_URL: string = 'http://10.12.8.110:5000';
 
   aboutToAppear() {
     const params = router.getParams() as RouterParams;
@@ -86,6 +89,67 @@ struct DishDetailPage {
       if (this.showReviewDialog) {
         this.ReviewDialog()
       }
+
+      // 删除确认对话框
+      if (this.showDeleteConfirm) {
+        this.DeleteConfirmDialog()
+      }
+    }
+    .width('100%')
+    .height('100%')
+  }
+
+  @Builder
+  DeleteConfirmDialog() {
+    Stack({ alignContent: Alignment.Center }) {
+      // 背景遮罩
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor('#80000000')
+        .onClick(() => { this.showDeleteConfirm = false; })
+
+      // 对话框
+      Column() {
+        Text('删除菜品')
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#1A1A1A')
+          .margin({ bottom: 16 })
+
+        Text(`确定要删除"${this.dish.name}"吗？`)
+          .fontSize(15)
+          .fontColor('#666666')
+          .margin({ bottom: 8 })
+
+        Text('此操作不可恢复')
+          .fontSize(13)
+          .fontColor('#FF3B30')
+          .margin({ bottom: 24 })
+
+        Row({ space: 12 }) {
+          Button('取消', { type: ButtonType.Normal })
+            .layoutWeight(1)
+            .height(44)
+            .backgroundColor('#F5F5F5')
+            .fontColor('#666666')
+            .borderRadius(22)
+            .onClick(() => { this.showDeleteConfirm = false; })
+
+          Button('删除', { type: ButtonType.Normal })
+            .layoutWeight(1)
+            .height(44)
+            .backgroundColor('#FF3B30')
+            .fontColor('#FFFFFF')
+            .borderRadius(22)
+            .onClick(() => { this.deleteDish(); })
+        }
+        .width('100%')
+      }
+      .width('85%')
+      .padding(24)
+      .backgroundColor('#FFFFFF')
+      .borderRadius(16)
     }
     .width('100%')
     .height('100%')
@@ -106,7 +170,19 @@ struct DishDetailPage {
         .layoutWeight(1)
         .textAlign(TextAlign.Center)
 
-      Blank().width(24)
+      // 删除按钮
+      Button({ type: ButtonType.Circle, stateEffect: true }) {
+        Image($r('app.media.delete'))
+          .width(18)
+          .height(18)
+          .fillColor('#FF3B30')
+      }
+      .width(36)
+      .height(36)
+      .backgroundColor('#FFF0F0')
+      .onClick(() => {
+        this.showDeleteConfirm = true;
+      })
     }
     .width('100%')
     .height(56)
@@ -117,16 +193,22 @@ struct DishDetailPage {
   @Builder
   DishImage() {
     Stack({ alignContent: Alignment.BottomStart }) {
-      if (this.dish.imageUrl) {
+      if (this.dish.imageUrl && this.dish.imageUrl.length > 0) {
         Image(this.normalizeImagePath(this.dish.imageUrl))
           .width('100%')
           .height(250)
           .objectFit(ImageFit.Cover)
+          .onError(() => {
+            console.error('图片加载失败: ' + this.dish.imageUrl);
+          })
       } else {
-        Image($r('app.media.dish1'))
-          .width('100%')
-          .height(250)
-          .objectFit(ImageFit.Cover)
+        // 默认图片
+        Column() {
+          Image($r('app.media.dish1'))
+            .width('100%')
+            .height(250)
+            .objectFit(ImageFit.Cover)
+        }
       }
 
       // 推荐标签
@@ -246,6 +328,38 @@ struct DishDetailPage {
         .fontColor('#999999')
         .margin({ top: 8 })
         .alignSelf(ItemAlign.Start)
+
+      // 快速评分区域
+      Column() {
+        Text('点击星星快速评分')
+          .fontSize(13)
+          .fontColor('#666666')
+          .margin({ bottom: 8 })
+
+        Row({ space: 12 }) {
+          ForEach([1, 2, 3, 4, 5], (star: number) => {
+            Text('★')
+              .fontSize(32)
+              .fontColor(star <= this.quickRating ? '#FFB800' : '#E0E0E0')
+              .onClick(() => {
+                this.quickRating = star;
+                this.submitQuickRating(star);
+              })
+          })
+        }
+
+        if (this.quickRating > 0) {
+          Text(`您的评分：${this.quickRating} 星`)
+            .fontSize(12)
+            .fontColor('#FF6B00')
+            .margin({ top: 8 })
+        }
+      }
+      .width('100%')
+      .padding({ top: 16 })
+      .margin({ top: 12 })
+      .borderWidth({ top: 1 })
+      .borderColor('#F0F0F0')
     }
     .width('100%')
     .padding(16)
@@ -601,11 +715,77 @@ struct DishDetailPage {
   // 规范化图片路径
   normalizeImagePath(path: string): string {
     if (!path) return '';
-    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    const lower = path.toLowerCase();
+    // HTTP/HTTPS URL
+    if (lower.startsWith('http://') || lower.startsWith('https://')) return path;
+    // 资源引用
     if (path.startsWith('app.media.')) return path;
-    if (path.startsWith('file://')) return path;
+    // file://协议
+    if (lower.startsWith('file://')) return path;
+    // 服务器相对路径(如/images/dishes/xxx.jpg)
+    if (path.startsWith('/images/')) {
+      return `${DishDetailPage.IMAGE_SERVER_URL}${path}`;
+    }
+    // 服务器相对路径(如images/dishes/xxx.jpg，没有前导斜杠)
+    if (path.startsWith('images/')) {
+      return `${DishDetailPage.IMAGE_SERVER_URL}/${path}`;
+    }
+    // 其他绝对路径
     if (path.startsWith('/')) return `file://${path}`;
     return path;
+  }
+
+  // 删除菜品
+  async deleteDish(): Promise<void> {
+    if (!this.dish || !this.dish.id || this.dish.id <= 0) {
+      ToastUtils.showToast('无法删除此菜品');
+      return;
+    }
+
+    try {
+      const response: ApiResponse = await ApiUtils.delete(`/dishes/${this.dish.id}`);
+
+      if (response.statusCode === 200) {
+        ToastUtils.showToast(`已删除"${this.dish.name}"`);
+        this.showDeleteConfirm = false;
+        // 返回上一页
+        router.back();
+      } else {
+        ToastUtils.showToast(response.message || '删除失败');
+      }
+    } catch (error) {
+      console.error('删除菜品失败:' + JSON.stringify(error));
+      ToastUtils.showToast('删除失败，请重试');
+    }
+  }
+
+  // 快速评分
+  async submitQuickRating(rating: number): Promise<void> {
+    if (!this.dish || !this.dish.id) {
+      ToastUtils.showToast('菜品信息错误');
+      return;
+    }
+
+    try {
+      const reviewRequest: SubmitReviewRequest = {
+        rating: rating,
+        content: `快速评分 ${rating} 星`
+      };
+      const response: ApiResponse = await ApiUtils.post(`/dishes/${this.dish.id}/reviews`, reviewRequest);
+      if (response.statusCode === 200) {
+        ToastUtils.showToast(`评分成功：${rating} 星`);
+        // 重新加载评价和菜品详情
+        await this.loadReviews(this.dish.id);
+        await this.loadDishDetail(this.dish.id);
+      } else {
+        ToastUtils.showToast(response.message || '评分失败');
+        this.quickRating = 0;
+      }
+    } catch (error) {
+      console.error('快速评分失败:' + JSON.stringify(error));
+      ToastUtils.showToast('评分失败，请重试');
+      this.quickRating = 0;
+    }
   }
 }
 

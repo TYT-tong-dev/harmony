@@ -1,4 +1,5 @@
-from flask import Flask, jsonify, render_template, request
+import os
+from flask import Flask, jsonify, render_template, request, send_from_directory
 from flask_cors import CORS
 from config import config
 from utils.logger import setup_logging
@@ -8,8 +9,13 @@ HUAWEI_APP_ID = '6917591161906879671'
 HUAWEI_PACKAGE_NAME = f'com.atomicservice.{HUAWEI_APP_ID}'
 
 def create_app(config_name):
-    app = Flask(__name__, template_folder='templates')
+    app = Flask(__name__, template_folder='templates', static_folder='static')
     app.config.from_object(config[config_name])
+    
+    # 确保静态文件目录存在
+    static_dir = os.path.join(os.path.dirname(__file__), 'static')
+    images_dir = os.path.join(static_dir, 'images', 'dishes')
+    os.makedirs(images_dir, exist_ok=True)
 
     # 设置日志
     setup_logging(app)
@@ -22,11 +28,13 @@ def create_app(config_name):
     from api.auth_routes import auth_bp
     from api.data_routes import data_bp
     from api.customer_routes import customer_bp
+    from api.payment_routes import payment_bp
 
     app.register_blueprint(user_bp, url_prefix='/api')
     app.register_blueprint(auth_bp, url_prefix='/api')
     app.register_blueprint(data_bp, url_prefix='/api')
     app.register_blueprint(customer_bp, url_prefix='/api')
+    app.register_blueprint(payment_bp, url_prefix='/api/payment')
 
     # 初始化桌位表
     from models.table_model import TableModel
@@ -94,6 +102,19 @@ def create_app(config_name):
     @app.route('/health')
     def health_check():
         return {'status': 'healthy', 'service': 'Harmony Login API'}
+
+    # 图片服务路由
+    @app.route('/images/dishes/<path:filename>')
+    def serve_dish_image(filename):
+        """提供菜品图片"""
+        images_dir = os.path.join(os.path.dirname(__file__), 'static', 'images', 'dishes')
+        return send_from_directory(images_dir, filename)
+
+    @app.route('/images/<path:filename>')
+    def serve_image(filename):
+        """提供通用图片"""
+        images_dir = os.path.join(os.path.dirname(__file__), 'static', 'images')
+        return send_from_directory(images_dir, filename)
 
     # 华为App Linking验证文件 (applinking.json)
     @app.route('/.well-known/applinking.json')

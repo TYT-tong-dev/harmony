@@ -122,7 +122,9 @@ struct LoginPage {
           AppStorage.setOrCreate('userToken', result.data.token);
           AppStorage.setOrCreate('userInfo', JSON.stringify(result.data));
           AppStorage.setOrCreate('isLoggedIn', true);
-          
+          // 记录登录时间戳（用于7天有效期检查）
+          AppStorage.setOrCreate('loginTimestamp', Date.now());
+
           // 检查当前模式，如果是顾客模式则保持，否则切换到商家模式
           const currentMode = AppStorage.get<AppMode>('appMode');
           if (currentMode !== AppMode.CUSTOMER) {

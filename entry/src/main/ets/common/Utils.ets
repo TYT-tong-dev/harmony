@@ -501,4 +501,38 @@ export class ApiUtils {
       });
     });
   }
+
+  // DELETE 请求
+  static async delete(url: string): Promise<ApiResponse> {
+    return new Promise((resolve, reject) => {
+      const httpRequest = http.createHttp();
+      const token = ApiUtils.getToken();
+
+      httpRequest.request(ApiUtils.BASE_URL + url, {
+        method: http.RequestMethod.DELETE,
+        header: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
+        connectTimeout: 10000,
+        readTimeout: 10000
+      }).then((data: http.HttpResponse) => {
+        if (data.responseCode === 200) {
+          try {
+            const response = JSON.parse(data.result.toString()) as ApiResponse;
+            resolve(response);
+          } catch (e) {
+            reject(new Error('解析响应失败'));
+          }
+        } else {
+          reject(new Error(`请求失败: ${data.responseCode}`));
+        }
+      }).catch((err: BusinessError) => {
+        console.error('HTTP DELETE请求失败:', JSON.stringify(err));
+        reject(err);
+      }).finally(() => {
+        httpRequest.destroy();
+      });
+    });
+  }
 }

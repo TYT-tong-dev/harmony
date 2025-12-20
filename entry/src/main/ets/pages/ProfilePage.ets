@@ -35,6 +35,26 @@ interface UpdateEmailRequest {
   email: string;
 }
 
+interface SettingsItem {
+  icon: string;
+  title: string;
+  value: string;
+  showAvatar?: boolean;
+  action: () => void;
+}
+
+// 创建设置项的辅助函数
+function createSettingsItem(icon: string, title: string, value: string, action: () => void, showAvatar?: boolean): SettingsItem {
+  const item: SettingsItem = {
+    icon: icon,
+    title: title,
+    value: value,
+    showAvatar: showAvatar || false,
+    action: action
+  };
+  return item;
+}
+
 interface StoredUserInfo {
   id?: number;
   username?: string;
@@ -133,12 +153,12 @@ export struct ProfilePage {
   LoggedInView() {
     Scroll() {
       Column() {
+        // 顶部渐变背景头部
+        this.ProfileHeader()
+
         if (this.isCustomerMode) {
           this.CustomerModeCard()
         }
-
-        // 登录信息展示
-        this.LoginInfoCard()
 
         if (!this.isCustomerMode) {
           // 销售信息展示
@@ -151,195 +171,390 @@ export struct ProfilePage {
         // 设置部分
         this.SettingsSection()
       }
+      .padding({ bottom: 20 })
     }
     .layoutWeight(1)
+    .backgroundColor('#F5F7FA')
   }
 
   @Builder
-  NotLoggedInView() {
-    Column() {
-      Image($r('app.media.ic_user_avatar'))
-        .width(80)
-        .height(80)
-        .margin({ bottom: 20 })
-
-      Text('登录后享受更多服务')
-        .fontSize(16)
-        .fontColor('#666666')
-        .margin({ bottom: 30 })
-
-      Button('点击登录')
-        .width(200)
-        .height(44)
-        .backgroundColor('#007DFF')
-        .fontColor('#FFFFFF')
-        .fontSize(16)
-        .borderRadius(22)
-        .onClick(() => {
-          this.navigateToLogin();
-        })
-    }
-    .width('100%')
-    .height('100%')
-    .justifyContent(FlexAlign.Center)
-    .alignItems(HorizontalAlign.Center)
-  }
-
-  @Builder
-  LoginInfoCard() {
-    Row() {
-      // 头像
-      Image(this.getImagePath(this.userInfo.avatar) || $r('app.media.ic_user_avatar'))
-        .width(60)
-        .height(60)
-        .borderRadius(30)
-        .margin({ right: 12 })
-        .onClick(() => {
-          this.changeAvatar();
+  ProfileHeader() {
+    Stack({ alignContent: Alignment.Bottom }) {
+      // 渐变背景
+      Column()
+        .width('100%')
+        .height(200)
+        .linearGradient({
+          angle: 135,
+          colors: [
+            ['#667eea', 0],
+            ['#764ba2', 1]
+          ]
         })
 
+      // 用户信息卡片
       Column() {
-        Text(this.userInfo.username || '未设置昵称')
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#333333')
+        // 头像和基本信息
+        Row({ space: 16 }) {
+          Stack() {
+            Image(this.getImagePath(this.userInfo.avatar) || $r('app.media.ic_user_avatar'))
+              .width(80)
+              .height(80)
+              .borderRadius(40)
+              .objectFit(ImageFit.Cover)
+              .border({ width: 3, color: '#FFFFFF' })
+              .shadow({
+                radius: 12,
+                color: 'rgba(0,0,0,0.15)',
+                offsetX: 0,
+                offsetY: 4
+              })
 
-        Text(this.userInfo.email || '未设置邮箱')
-          .fontSize(14)
-          .fontColor('#666666')
-          .margin({ top: 4 })
-      }
-      .alignItems(HorizontalAlign.Start)
-      .layoutWeight(1)
+            // 编辑头像图标
+            Column() {
+              Text('📷')
+                .fontSize(14)
+            }
+            .width(28)
+            .height(28)
+            .borderRadius(14)
+            .backgroundColor('#007DFF')
+            .justifyContent(FlexAlign.Center)
+            .position({ x: 56, y: 56 })
+          }
+          .onClick(() => {
+            this.changeAvatar();
+          })
 
-      Button('退出登录', { type: ButtonType.Normal, stateEffect: true })
-        .height(36)
-        .fontSize(14)
-        .backgroundColor('#FF3B30')
-        .fontColor('#FFFFFF')
-        .borderRadius(18)
-        .onClick(() => {
-          this.logout();
-        })
-    }
-    .width('100%')
-    .padding(16)
-    .backgroundColor('#FFFFFF')
-    .margin({ top: 12, left: 12, right: 12 })
-    .borderRadius(8)
-  }
+          Column({ space: 6 }) {
+            Text(this.userInfo.username || '未设置昵称')
+              .fontSize(22)
+              .fontWeight(FontWeight.Bold)
+              .fontColor('#1A1A1A')
 
-  @Builder
-  SalesInfoCard() {
-    Column() {
-      Text('销售信息')
-        .fontSize(18)
-        .fontWeight(FontWeight.Bold)
-        .fontColor('#333333')
-        .margin({ bottom: 16 })
-
-      // 销售额
-      Row() {
-        Column() {
-          Text('¥' + this.salesStats.total_revenue.toFixed(2))
-            .fontSize(24)
-            .fontWeight(FontWeight.Bold)
-            .fontColor('#FF6B00')
-
-          Text('总销售额')
-            .fontSize(14)
-            .fontColor('#666666')
-            .margin({ top: 4 })
-        }
-        .layoutWeight(1)
-        .alignItems(HorizontalAlign.Center)
-      }
-      .width('100%')
-      .padding({ top: 16, bottom: 16 })
-      .margin({ bottom: 12 })
-      .backgroundColor('#FFF7E6')
-      .borderRadius(8)
-
-      // 销售数量
-      Row() {
-        Column() {
-          Text(this.salesStats.total_quantity.toString())
-            .fontSize(24)
-            .fontWeight(FontWeight.Bold)
-            .fontColor('#007DFF')
-
-          Text('总销售数量')
-            .fontSize(14)
-            .fontColor('#666666')
-            .margin({ top: 4 })
-        }
-        .layoutWeight(1)
-        .alignItems(HorizontalAlign.Center)
-      }
-      .width('100%')
-      .padding({ top: 16, bottom: 16 })
-      .margin({ bottom: 12 })
-      .backgroundColor('#E6F2FF')
-      .borderRadius(8)
-
-      // 销售最多的菜品
-      if (this.salesStats.top_dish) {
-        Row() {
-          Image(this.getImagePath(this.salesStats.top_dish.image_url))
-            .width(60)
-            .height(60)
-            .borderRadius(8)
-            .margin({ right: 12 })
-
-          Column() {
-            Text('销售最多')
-              .fontSize(12)
-              .fontColor('#999999')
-              .margin({ bottom: 4 })
-
-            Text(this.salesStats.top_dish.name)
-              .fontSize(16)
-              .fontWeight(FontWeight.Medium)
-              .fontColor('#333333')
-
-            Text(`已售 ${this.salesStats.top_dish.total_sold} 份`)
+            Text(this.userInfo.email || '未设置邮箱')
               .fontSize(14)
               .fontColor('#666666')
-              .margin({ top: 4 })
+
+            if (this.userInfo.address) {
+              Row({ space: 4 }) {
+                Text('📍')
+                  .fontSize(12)
+                Text(this.userInfo.address)
+                  .fontSize(12)
+                  .fontColor('#999999')
+                  .maxLines(1)
+                  .textOverflow({ overflow: TextOverflow.Ellipsis })
+              }
+            }
           }
           .alignItems(HorizontalAlign.Start)
           .layoutWeight(1)
         }
         .width('100%')
-        .padding(12)
-        .backgroundColor('#F0F9FF')
-        .borderRadius(8)
+        .padding({ left: 20, right: 20, top: 20, bottom: 16 })
+
+        // 退出登录按钮
+        Button('退出登录', { type: ButtonType.Normal, stateEffect: true })
+          .width('90%')
+          .height(44)
+          .fontSize(15)
+          .fontWeight(FontWeight.Medium)
+          .backgroundColor('rgba(255,59,48,0.1)')
+          .fontColor('#FF3B30')
+          .borderRadius(22)
+          .margin({ bottom: 16 })
+          .onClick(() => {
+            this.logout();
+          })
+      }
+      .width('92%')
+      .backgroundColor('#FFFFFF')
+      .borderRadius(20)
+      .shadow({
+        radius: 20,
+        color: 'rgba(0,0,0,0.08)',
+        offsetX: 0,
+        offsetY: 8
+      })
+      .margin({ bottom: -40 })
+    }
+    .width('100%')
+    .height(260)
+    .margin({ bottom: 50 })
+  }
+
+  @Builder
+  NotLoggedInView() {
+    Column() {
+      // 渐变背景
+      Stack({ alignContent: Alignment.Center }) {
+        Column()
+          .width('100%')
+          .height('100%')
+          .linearGradient({
+            angle: 180,
+            colors: [
+              ['#667eea', 0],
+              ['#764ba2', 0.5],
+              ['#F5F7FA', 0.5],
+              ['#F5F7FA', 1]
+            ]
+          })
+
+        Column({ space: 24 }) {
+          // 头像区域
+          Column() {
+            Image($r('app.media.ic_user_avatar'))
+              .width(100)
+              .height(100)
+              .borderRadius(50)
+              .border({ width: 4, color: '#FFFFFF' })
+              .shadow({
+                radius: 20,
+                color: 'rgba(0,0,0,0.2)',
+                offsetX: 0,
+                offsetY: 8
+              })
+          }
+          .width(120)
+          .height(120)
+          .borderRadius(60)
+          .backgroundColor('rgba(255,255,255,0.2)')
+          .justifyContent(FlexAlign.Center)
+
+          // 文字区域
+          Column({ space: 8 }) {
+            Text('欢迎使用')
+              .fontSize(28)
+              .fontWeight(FontWeight.Bold)
+              .fontColor('#1A1A1A')
+
+            Text('登录后享受更多服务')
+              .fontSize(15)
+              .fontColor('#666666')
+          }
+
+          // 登录按钮
+          Button('立即登录', { type: ButtonType.Normal, stateEffect: true })
+            .width(200)
+            .height(50)
+            .fontSize(17)
+            .fontWeight(FontWeight.Medium)
+            .borderRadius(25)
+            .linearGradient({
+              angle: 90,
+              colors: [['#667eea', 0], ['#764ba2', 1]]
+            })
+            .fontColor('#FFFFFF')
+            .shadow({
+              radius: 16,
+              color: 'rgba(102,126,234,0.4)',
+              offsetX: 0,
+              offsetY: 6
+            })
+            .onClick(() => {
+              this.navigateToLogin();
+            })
+        }
+        .padding({ top: 80 })
+      }
+    }
+    .width('100%')
+    .height('100%')
+  }
+
+  // LoginInfoCard已移至ProfileHeader中
+
+  @Builder
+  SalesInfoCard() {
+    Column({ space: 16 }) {
+      // 标题
+      Row() {
+        Column()
+          .width(4)
+          .height(20)
+          .borderRadius(2)
+          .backgroundColor('#007DFF')
+          .margin({ right: 10 })
+        Text('销售数据')
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#1A1A1A')
+      }
+      .width('100%')
+
+      // 销售统计卡片
+      Row({ space: 12 }) {
+        // 销售额卡片
+        Column({ space: 8 }) {
+          Row() {
+            Column()
+              .width(36)
+              .height(36)
+              .borderRadius(18)
+              .linearGradient({
+                angle: 135,
+                colors: [['#FF9500', 0], ['#FF6B00', 1]]
+              })
+              .justifyContent(FlexAlign.Center)
+          }
+          Text('¥' + this.salesStats.total_revenue.toFixed(2))
+            .fontSize(22)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#FF6B00')
+          Text('总销售额')
+            .fontSize(13)
+            .fontColor('#888888')
+        }
+        .layoutWeight(1)
+        .padding(16)
+        .backgroundColor('#FFFAF5')
+        .borderRadius(16)
+        .alignItems(HorizontalAlign.Center)
+
+        // 销售数量卡片
+        Column({ space: 8 }) {
+          Row() {
+            Column()
+              .width(36)
+              .height(36)
+              .borderRadius(18)
+              .linearGradient({
+                angle: 135,
+                colors: [['#007DFF', 0], ['#5856D6', 1]]
+              })
+              .justifyContent(FlexAlign.Center)
+          }
+          Text(this.salesStats.total_quantity.toString())
+            .fontSize(22)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#007DFF')
+          Text('总销售数量')
+            .fontSize(13)
+            .fontColor('#888888')
+        }
+        .layoutWeight(1)
+        .padding(16)
+        .backgroundColor('#F5F8FF')
+        .borderRadius(16)
+        .alignItems(HorizontalAlign.Center)
+      }
+      .width('100%')
+
+      // 热销菜品
+      if (this.salesStats.top_dish) {
+        Column({ space: 12 }) {
+          Row() {
+            Text('🔥')
+              .fontSize(16)
+            Text('热销菜品')
+              .fontSize(14)
+              .fontWeight(FontWeight.Medium)
+              .fontColor('#666666')
+              .margin({ left: 6 })
+          }
+          .width('100%')
+
+          Row({ space: 14 }) {
+            Image(this.getImagePath(this.salesStats.top_dish.image_url))
+              .width(70)
+              .height(70)
+              .borderRadius(14)
+              .objectFit(ImageFit.Cover)
+              .shadow({
+                radius: 8,
+                color: 'rgba(0,0,0,0.1)',
+                offsetX: 0,
+                offsetY: 2
+              })
+
+            Column({ space: 6 }) {
+              Text(this.salesStats.top_dish.name)
+                .fontSize(17)
+                .fontWeight(FontWeight.Bold)
+                .fontColor('#1A1A1A')
+
+              Row({ space: 6 }) {
+                Text('已售')
+                  .fontSize(13)
+                  .fontColor('#888888')
+                Text(`${this.salesStats.top_dish.total_sold}`)
+                  .fontSize(15)
+                  .fontWeight(FontWeight.Bold)
+                  .fontColor('#FF6B00')
+                Text('份')
+                  .fontSize(13)
+                  .fontColor('#888888')
+              }
+            }
+            .alignItems(HorizontalAlign.Start)
+            .layoutWeight(1)
+
+            Column() {
+              Text('TOP1')
+                .fontSize(12)
+                .fontWeight(FontWeight.Bold)
+                .fontColor('#FFFFFF')
+            }
+            .padding({ left: 10, right: 10, top: 4, bottom: 4 })
+            .borderRadius(12)
+            .linearGradient({
+              angle: 90,
+              colors: [['#FF6B6B', 0], ['#FF8E53', 1]]
+            })
+          }
+          .width('100%')
+          .padding(14)
+          .backgroundColor('#FAFAFA')
+          .borderRadius(14)
+        }
       } else {
-        Row() {
+        Column({ space: 8 }) {
+          Text('📊')
+            .fontSize(32)
           Text('暂无销售数据')
             .fontSize(14)
             .fontColor('#999999')
         }
         .width('100%')
-        .padding(12)
+        .padding(24)
         .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
       }
     }
     .width('100%')
-    .padding(16)
+    .padding(20)
     .backgroundColor('#FFFFFF')
-    .margin({ top: 12, left: 12, right: 12 })
-    .borderRadius(8)
+    .margin({ top: 12, left: 16, right: 16 })
+    .borderRadius(20)
+    .shadow({
+      radius: 16,
+      color: 'rgba(0,0,0,0.05)',
+      offsetX: 0,
+      offsetY: 4
+    })
   }
 
   @Builder
   MerchantToolsCard() {
-    Column({ space: 12 }) {
-      Text('经营工具')
-        .fontSize(18)
-        .fontWeight(FontWeight.Bold)
-        .fontColor('#333333')
+    Column({ space: 16 }) {
+      // 标题
+      Row() {
+        Column()
+          .width(4)
+          .height(20)
+          .borderRadius(2)
+          .backgroundColor('#34C759')
+          .margin({ right: 10 })
+        Text('经营工具')
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#1A1A1A')
+      }
+      .width('100%')
 
+      // 工具列表
       Column() {
         this.ToolListItem('桌号二维码', '生成桌贴，顾客扫码即进入点餐', () => {
           this.navigateToTableQRCode();
@@ -347,276 +562,263 @@ export struct ProfilePage {
       }
     }
     .width('100%')
-    .padding(16)
+    .padding(20)
     .backgroundColor('#FFFFFF')
-    .margin({ top: 12, left: 12, right: 12 })
-    .borderRadius(8)
+    .margin({ top: 12, left: 16, right: 16 })
+    .borderRadius(20)
+    .shadow({
+      radius: 16,
+      color: 'rgba(0,0,0,0.05)',
+      offsetX: 0,
+      offsetY: 4
+    })
   }
 
   @Builder
   ToolListItem(title: string, subtitle: string, action: () => void) {
-    Row() {
+    Row({ space: 14 }) {
+      // 图标背景
       Column() {
+        Image($r('app.media.qr_code'))
+          .width(24)
+          .height(24)
+          .fillColor('#FFFFFF')
+      }
+      .width(48)
+      .height(48)
+      .borderRadius(14)
+      .justifyContent(FlexAlign.Center)
+      .linearGradient({
+        angle: 135,
+        colors: [['#34C759', 0], ['#30D158', 1]]
+      })
+
+      Column({ space: 4 }) {
         Text(title)
           .fontSize(16)
           .fontWeight(FontWeight.Medium)
           .fontColor('#1A1A1A')
         Text(subtitle)
-          .fontSize(12)
+          .fontSize(13)
           .fontColor('#888888')
-          .margin({ top: 4 })
       }
+      .alignItems(HorizontalAlign.Start)
       .layoutWeight(1)
 
-      Image($r('app.media.qr_code'))
-        .width(32)
-        .height(32)
-        .fillColor('#007DFF')
+      Image($r('app.media.arrow_right'))
+        .width(18)
+        .height(18)
+        .fillColor('#C7C7CC')
     }
     .width('100%')
-    .padding({ top: 12, bottom: 12 })
+    .padding(14)
+    .backgroundColor('#F8F9FA')
+    .borderRadius(14)
     .onClick(() => action())
   }
 
   @Builder
   CustomerModeCard() {
-    Column({ space: 8 }) {
-      Text('当前为顾客模式')
-        .fontSize(16)
-        .fontWeight(FontWeight.Bold)
-        .fontColor('#1A1A1A')
-      Text('部分商家经营能力已隐藏，扫码点餐体验一致。')
-        .fontSize(13)
-        .fontColor('#666666')
+    Column({ space: 12 }) {
+      Row({ space: 10 }) {
+        Column() {
+          Text('👤')
+            .fontSize(20)
+        }
+        .width(40)
+        .height(40)
+        .borderRadius(20)
+        .backgroundColor('rgba(0,125,255,0.1)')
+        .justifyContent(FlexAlign.Center)
+
+        Column({ space: 4 }) {
+          Text('当前为顾客模式')
+            .fontSize(16)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#1A1A1A')
+          Text('部分商家经营能力已隐藏')
+            .fontSize(13)
+            .fontColor('#666666')
+        }
+        .alignItems(HorizontalAlign.Start)
+        .layoutWeight(1)
+      }
+
       Button('切换回商家端', { type: ButtonType.Normal, stateEffect: true })
-        .height(38)
+        .width('100%')
+        .height(42)
         .fontSize(14)
-        .borderRadius(19)
-        .backgroundColor('#FFFFFF')
-        .fontColor('#007DFF')
+        .fontWeight(FontWeight.Medium)
+        .borderRadius(21)
+        .backgroundColor('#007DFF')
+        .fontColor('#FFFFFF')
         .onClick(() => {
           this.switchToMerchantMode();
         })
     }
     .width('100%')
-    .padding(16)
-    .backgroundColor('#F0F6FF')
-    .margin({ top: 12, left: 12, right: 12 })
-    .borderRadius(10)
+    .padding(20)
+    .linearGradient({
+      angle: 135,
+      colors: [['#E8F4FF', 0], ['#F0F6FF', 1]]
+    })
+    .margin({ top: 12, left: 16, right: 16 })
+    .borderRadius(20)
+    .shadow({
+      radius: 12,
+      color: 'rgba(0,125,255,0.1)',
+      offsetX: 0,
+      offsetY: 4
+    })
   }
 
   @Builder
   CustomerTableCard() {
-    Column({ space: 6 }) {
-      Text('顾客桌台信息')
-        .fontSize(16)
-        .fontWeight(FontWeight.Bold)
-        .fontColor('#1A1A1A')
-      Text(this.currentTableId ? `正在为 ${this.currentTableId} 桌点餐` : '未绑定桌号，可扫码进入指定餐桌')
-        .fontSize(14)
-        .fontColor('#666666')
-      Button('重新扫码进入', { type: ButtonType.Capsule, stateEffect: true })
-        .height(34)
-        .fontSize(13)
-        .borderRadius(17)
-        .backgroundColor('#007DFF')
-        .fontColor('#FFFFFF')
-        .onClick(() => {
-          ToastUtils.showToast('请扫描桌号二维码进入顾客端');
-        })
+    Column({ space: 14 }) {
+      Row({ space: 12 }) {
+        Column() {
+          Text('🍽️')
+            .fontSize(24)
+        }
+        .width(50)
+        .height(50)
+        .borderRadius(25)
+        .backgroundColor('#FFF5E6')
+        .justifyContent(FlexAlign.Center)
+
+        Column({ space: 4 }) {
+          Text('顾客桌台信息')
+            .fontSize(16)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#1A1A1A')
+          Text(this.currentTableId ? `正在为 ${this.currentTableId} 桌点餐` : '未绑定桌号')
+            .fontSize(14)
+            .fontColor(this.currentTableId ? '#34C759' : '#888888')
+        }
+        .alignItems(HorizontalAlign.Start)
+        .layoutWeight(1)
+      }
+
+      if (!this.currentTableId) {
+        Button('扫码进入餐桌', { type: ButtonType.Normal, stateEffect: true })
+          .width('100%')
+          .height(42)
+          .fontSize(14)
+          .fontWeight(FontWeight.Medium)
+          .borderRadius(21)
+          .backgroundColor('#FF9500')
+          .fontColor('#FFFFFF')
+          .onClick(() => {
+            ToastUtils.showToast('请扫描桌号二维码进入顾客端');
+          })
+      }
     }
     .width('100%')
-    .padding(16)
+    .padding(20)
     .backgroundColor('#FFFFFF')
-    .margin({ top: 12, left: 12, right: 12 })
-    .borderRadius(8)
+    .margin({ top: 12, left: 16, right: 16 })
+    .borderRadius(20)
+    .shadow({
+      radius: 16,
+      color: 'rgba(0,0,0,0.05)',
+      offsetX: 0,
+      offsetY: 4
+    })
   }
 
   @Builder
   SettingsSection() {
-    Column() {
-      // 个人资料
-      Text('个人资料')
-        .fontSize(16)
-        .fontWeight(FontWeight.Medium)
-        .fontColor('#333333')
-        .margin({ bottom: 12 })
-        .alignSelf(ItemAlign.Start)
+    Column({ space: 16 }) {
+      // 个人资料部分
+      this.SettingsGroup('个人资料', '#5856D6', this.getProfileSettingsItems())
 
-      // 头像
+      // 社交功能部分
+      this.SettingsGroup('社交功能', '#FF9500', this.getSocialSettingsItems())
+
+      // 账号安全部分
+      this.SettingsGroup('账号安全', '#FF3B30', this.getSecuritySettingsItems())
+    }
+    .width('100%')
+    .padding({ left: 16, right: 16, bottom: 20 })
+  }
+
+  @Builder
+  SettingsGroup(title: string, color: string, items: SettingsItem[]) {
+    Column({ space: 12 }) {
+      // 分组标题
       Row() {
-        Text('头像')
+        Column()
+          .width(4)
+          .height(18)
+          .borderRadius(2)
+          .backgroundColor(color)
+          .margin({ right: 10 })
+        Text(title)
           .fontSize(16)
-          .fontColor('#333333')
-          .layoutWeight(1)
-
-        Image(this.getImagePath(this.userInfo.avatar) || $r('app.media.ic_user_avatar'))
-          .width(50)
-          .height(50)
-          .borderRadius(25)
-          .margin({ right: 8 })
-
-        Image($r('app.media.arrow_right'))
-          .width(16)
-          .height(16)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#1A1A1A')
       }
       .width('100%')
-      .padding({ top: 12, bottom: 12 })
-      .onClick(() => {
-        this.changeAvatar();
-      })
+      .padding({ left: 4 })
 
-      Divider()
-        .strokeWidth(1)
-        .color('#F0F0F0')
+      // 设置项列表
+      Column() {
+        ForEach(items, (item: SettingsItem, index: number) => {
+          Column() {
+            Row({ space: 12 }) {
+              Text(item.icon)
+                .fontSize(18)
 
-      // 昵称
-      Row() {
-        Text('昵称')
-          .fontSize(16)
-          .fontColor('#333333')
-          .layoutWeight(1)
+              Text(item.title)
+                .fontSize(15)
+                .fontColor('#1A1A1A')
+                .layoutWeight(1)
 
-        Text(this.userInfo.username || '未设置')
-          .fontSize(14)
-          .fontColor('#666666')
-          .margin({ right: 8 })
+              if (item.showAvatar) {
+                Image(this.getImagePath(this.userInfo.avatar) || $r('app.media.ic_user_avatar'))
+                  .width(36)
+                  .height(36)
+                  .borderRadius(18)
+                  .objectFit(ImageFit.Cover)
+              } else {
+                Text(item.value)
+                  .fontSize(14)
+                  .fontColor('#888888')
+                  .maxLines(1)
+                  .textOverflow({ overflow: TextOverflow.Ellipsis })
+                  .constraintSize({ maxWidth: 150 })
+              }
 
-        Image($r('app.media.arrow_right'))
-          .width(16)
-          .height(16)
+              Image($r('app.media.arrow_right'))
+                .width(16)
+                .height(16)
+                .fillColor('#C7C7CC')
+            }
+            .width('100%')
+            .padding({ top: 14, bottom: 14, left: 4, right: 4 })
+            .onClick(() => item.action())
+
+            if (index < items.length - 1) {
+              Divider()
+                .strokeWidth(0.5)
+                .color('#F0F0F0')
+                .margin({ left: 34 })
+            }
+          }
+        }, (item: SettingsItem, index: number) => `${title}-${index}`)
       }
-      .width('100%')
-      .padding({ top: 12, bottom: 12 })
-      .onClick(() => {
-        this.editUsername = this.userInfo.username || '';
-        this.showEditProfile = true;
-      })
-
-      Divider()
-        .strokeWidth(1)
-        .color('#F0F0F0')
-
-      // 地址
-      Row() {
-        Text('地址')
-          .fontSize(16)
-          .fontColor('#333333')
-          .layoutWeight(1)
-
-        Text(this.userInfo.address || '未设置')
-          .fontSize(14)
-          .fontColor('#666666')
-          .margin({ right: 8 })
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-        Image($r('app.media.arrow_right'))
-          .width(16)
-          .height(16)
-      }
-      .width('100%')
-      .padding({ top: 12, bottom: 12 })
-      .onClick(() => {
-        this.editAddress = this.userInfo.address || '';
-        this.showEditProfile = true;
-      })
-
-      // 社交功能
-      Text('社交功能')
-        .fontSize(16)
-        .fontWeight(FontWeight.Medium)
-        .fontColor('#333333')
-        .margin({ top: 24, bottom: 12 })
-        .alignSelf(ItemAlign.Start)
-
-      // 我的关注
-      Row() {
-        Text('我的关注')
-          .fontSize(16)
-          .fontColor('#333333')
-          .layoutWeight(1)
-
-        Text('查看关注的用户')
-          .fontSize(14)
-          .fontColor('#666666')
-          .margin({ right: 8 })
-
-        Image($r('app.media.arrow_right'))
-          .width(16)
-          .height(16)
-      }
-      .width('100%')
-      .padding({ top: 12, bottom: 12 })
-      .onClick(() => {
-        router.pushUrl({ url: 'pages/MyFollowsPage' });
-      })
-
-      // 账号安全
-      Text('账号安全')
-        .fontSize(16)
-        .fontWeight(FontWeight.Medium)
-        .fontColor('#333333')
-        .margin({ top: 24, bottom: 12 })
-        .alignSelf(ItemAlign.Start)
-
-      // 密码
-      Row() {
-        Text('密码')
-          .fontSize(16)
-          .fontColor('#333333')
-          .layoutWeight(1)
-
-        Text('修改密码')
-          .fontSize(14)
-          .fontColor('#666666')
-          .margin({ right: 8 })
-
-        Image($r('app.media.arrow_right'))
-          .width(16)
-          .height(16)
-      }
-      .width('100%')
-      .padding({ top: 12, bottom: 12 })
-      .onClick(() => {
-        this.oldPassword = '';
-        this.newPassword = '';
-        this.confirmPassword = '';
-        this.showEditPassword = true;
-      })
-
-      Divider()
-        .strokeWidth(1)
-        .color('#F0F0F0')
-
-      // 邮箱
-      Row() {
-        Text('邮箱')
-          .fontSize(16)
-          .fontColor('#333333')
-          .layoutWeight(1)
-
-        Text(this.userInfo.email || '未设置')
-          .fontSize(14)
-          .fontColor('#666666')
-          .margin({ right: 8 })
-
-        Image($r('app.media.arrow_right'))
-          .width(16)
-          .height(16)
-      }
-      .width('100%')
-      .padding({ top: 12, bottom: 12 })
-      .onClick(() => {
-        this.editEmail = this.userInfo.email || '';
-        this.showEditEmail = true;
+      .backgroundColor('#FFFFFF')
+      .borderRadius(16)
+      .padding({ left: 12, right: 12 })
+      .shadow({
+        radius: 12,
+        color: 'rgba(0,0,0,0.04)',
+        offsetX: 0,
+        offsetY: 2
       })
     }
     .width('100%')
-    .padding(16)
-    .backgroundColor('#FFFFFF')
-    .margin({ top: 12, left: 12, right: 12, bottom: 12 })
-    .borderRadius(8)
+    .margin({ top: 8 })
   }
 
   @Builder
@@ -624,70 +826,96 @@ export struct ProfilePage {
     Stack({ alignContent: Alignment.Center }) {
       // 背景遮罩
       Column() {
-      Blank()
+        Blank()
       }
-        .width('100%')
-        .height('100%')
-        .backgroundColor('#80000000')
-        .onClick(() => {
-          this.showEditProfile = false;
-        })
+      .width('100%')
+      .height('100%')
+      .backgroundColor('rgba(0,0,0,0.5)')
+      .onClick(() => {
+        this.showEditProfile = false;
+      })
 
       // 对话框内容
-      Column() {
-        Text('编辑个人资料')
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#333333')
-          .margin({ bottom: 20 })
-
-        TextInput({ placeholder: '请输入昵称', text: this.editUsername })
-          .width('100%')
-          .height(44)
-          .margin({ bottom: 12 })
-          .onChange((value: string) => {
-            this.editUsername = value;
-          })
-
-        TextInput({ placeholder: '请输入地址', text: this.editAddress })
-          .width('100%')
-          .height(44)
-          .margin({ bottom: 20 })
-          .onChange((value: string) => {
-            this.editAddress = value;
-          })
-
+      Column({ space: 20 }) {
+        // 标题
         Row() {
+          Text('✏️')
+            .fontSize(22)
+          Text('编辑个人资料')
+            .fontSize(20)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#1A1A1A')
+            .margin({ left: 8 })
+        }
+
+        // 昵称输入
+        Column({ space: 8 }) {
+          Text('昵称')
+            .fontSize(14)
+            .fontColor('#666666')
+            .alignSelf(ItemAlign.Start)
+          TextInput({ placeholder: '请输入昵称', text: this.editUsername })
+            .width('100%')
+            .height(48)
+            .borderRadius(12)
+            .backgroundColor('#F5F7FA')
+            .onChange((value: string) => {
+              this.editUsername = value;
+            })
+        }
+
+        // 地址输入
+        Column({ space: 8 }) {
+          Text('地址')
+            .fontSize(14)
+            .fontColor('#666666')
+            .alignSelf(ItemAlign.Start)
+          TextInput({ placeholder: '请输入地址', text: this.editAddress })
+            .width('100%')
+            .height(48)
+            .borderRadius(12)
+            .backgroundColor('#F5F7FA')
+            .onChange((value: string) => {
+              this.editAddress = value;
+            })
+        }
+
+        // 按钮
+        Row({ space: 12 }) {
           Button('取消', { type: ButtonType.Normal, stateEffect: true })
             .layoutWeight(1)
-            .height(44)
+            .height(48)
             .backgroundColor('#F5F5F5')
-            .fontColor('#333333')
-            .margin({ right: 8 })
+            .fontColor('#666666')
+            .fontSize(16)
+            .borderRadius(24)
             .onClick(() => {
               this.showEditProfile = false;
             })
 
           Button('保存', { type: ButtonType.Normal, stateEffect: true })
             .layoutWeight(1)
-            .height(44)
+            .height(48)
             .backgroundColor('#007DFF')
             .fontColor('#FFFFFF')
+            .fontSize(16)
+            .fontWeight(FontWeight.Medium)
+            .borderRadius(24)
             .onClick(() => {
               this.saveProfile();
             })
         }
         .width('100%')
       }
-      .width('90%')
-      .padding(20)
+      .width('88%')
+      .padding(24)
       .backgroundColor('#FFFFFF')
-      .borderRadius(12)
+      .borderRadius(24)
       .shadow({
-        radius: 20,
-        color: '#000000',
+        radius: 30,
+        color: 'rgba(0,0,0,0.15)',
         offsetX: 0,
-        offsetY: 4
+        offsetY: 10
       })
     }
     .width('100%')
@@ -699,81 +927,116 @@ export struct ProfilePage {
     Stack({ alignContent: Alignment.Center }) {
       // 背景遮罩
       Column() {
-      Blank()
+        Blank()
       }
-        .width('100%')
-        .height('100%')
-        .backgroundColor('#80000000')
-        .onClick(() => {
-          this.showEditPassword = false;
-        })
+      .width('100%')
+      .height('100%')
+      .backgroundColor('rgba(0,0,0,0.5)')
+      .onClick(() => {
+        this.showEditPassword = false;
+      })
 
       // 对话框内容
-      Column() {
-        Text('修改密码')
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#333333')
-          .margin({ bottom: 20 })
-
-        TextInput({ placeholder: '请输入原密码', text: this.oldPassword })
-          .type(InputType.Password)
-          .width('100%')
-          .height(44)
-          .margin({ bottom: 12 })
-          .onChange((value: string) => {
-            this.oldPassword = value;
-          })
-
-        TextInput({ placeholder: '请输入新密码', text: this.newPassword })
-          .type(InputType.Password)
-          .width('100%')
-          .height(44)
-          .margin({ bottom: 12 })
-          .onChange((value: string) => {
-            this.newPassword = value;
-          })
-
-        TextInput({ placeholder: '请确认新密码', text: this.confirmPassword })
-          .type(InputType.Password)
-          .width('100%')
-          .height(44)
-          .margin({ bottom: 20 })
-          .onChange((value: string) => {
-            this.confirmPassword = value;
-          })
-
+      Column({ space: 16 }) {
+        // 标题
         Row() {
+          Text('🔒')
+            .fontSize(22)
+          Text('修改密码')
+            .fontSize(20)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#1A1A1A')
+            .margin({ left: 8 })
+        }
+
+        // 原密码
+        Column({ space: 8 }) {
+          Text('原密码')
+            .fontSize(14)
+            .fontColor('#666666')
+            .alignSelf(ItemAlign.Start)
+          TextInput({ placeholder: '请输入原密码', text: this.oldPassword })
+            .type(InputType.Password)
+            .width('100%')
+            .height(48)
+            .borderRadius(12)
+            .backgroundColor('#F5F7FA')
+            .onChange((value: string) => {
+              this.oldPassword = value;
+            })
+        }
+
+        // 新密码
+        Column({ space: 8 }) {
+          Text('新密码')
+            .fontSize(14)
+            .fontColor('#666666')
+            .alignSelf(ItemAlign.Start)
+          TextInput({ placeholder: '请输入新密码', text: this.newPassword })
+            .type(InputType.Password)
+            .width('100%')
+            .height(48)
+            .borderRadius(12)
+            .backgroundColor('#F5F7FA')
+            .onChange((value: string) => {
+              this.newPassword = value;
+            })
+        }
+
+        // 确认密码
+        Column({ space: 8 }) {
+          Text('确认密码')
+            .fontSize(14)
+            .fontColor('#666666')
+            .alignSelf(ItemAlign.Start)
+          TextInput({ placeholder: '请确认新密码', text: this.confirmPassword })
+            .type(InputType.Password)
+            .width('100%')
+            .height(48)
+            .borderRadius(12)
+            .backgroundColor('#F5F7FA')
+            .onChange((value: string) => {
+              this.confirmPassword = value;
+            })
+        }
+
+        // 按钮
+        Row({ space: 12 }) {
           Button('取消', { type: ButtonType.Normal, stateEffect: true })
             .layoutWeight(1)
-            .height(44)
+            .height(48)
             .backgroundColor('#F5F5F5')
-            .fontColor('#333333')
-            .margin({ right: 8 })
+            .fontColor('#666666')
+            .fontSize(16)
+            .borderRadius(24)
             .onClick(() => {
               this.showEditPassword = false;
             })
 
           Button('保存', { type: ButtonType.Normal, stateEffect: true })
             .layoutWeight(1)
-            .height(44)
+            .height(48)
             .backgroundColor('#007DFF')
             .fontColor('#FFFFFF')
+            .fontSize(16)
+            .fontWeight(FontWeight.Medium)
+            .borderRadius(24)
             .onClick(() => {
               this.savePassword();
             })
         }
         .width('100%')
+        .margin({ top: 8 })
       }
-      .width('90%')
-      .padding(20)
+      .width('88%')
+      .padding(24)
       .backgroundColor('#FFFFFF')
-      .borderRadius(12)
+      .borderRadius(24)
       .shadow({
-        radius: 20,
-        color: '#000000',
+        radius: 30,
+        color: 'rgba(0,0,0,0.15)',
         offsetX: 0,
-        offsetY: 4
+        offsetY: 10
       })
     }
     .width('100%')
@@ -785,62 +1048,80 @@ export struct ProfilePage {
     Stack({ alignContent: Alignment.Center }) {
       // 背景遮罩
       Column() {
-      Blank()
+        Blank()
       }
-        .width('100%')
-        .height('100%')
-        .backgroundColor('#80000000')
-        .onClick(() => {
-          this.showEditEmail = false;
-        })
+      .width('100%')
+      .height('100%')
+      .backgroundColor('rgba(0,0,0,0.5)')
+      .onClick(() => {
+        this.showEditEmail = false;
+      })
 
       // 对话框内容
-      Column() {
-        Text('修改邮箱')
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#333333')
-          .margin({ bottom: 20 })
-
-        TextInput({ placeholder: '请输入新邮箱', text: this.editEmail })
-          .width('100%')
-          .height(44)
-          .margin({ bottom: 20 })
-          .onChange((value: string) => {
-            this.editEmail = value;
-          })
-
+      Column({ space: 20 }) {
+        // 标题
         Row() {
+          Text('📧')
+            .fontSize(22)
+          Text('修改邮箱')
+            .fontSize(20)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#1A1A1A')
+            .margin({ left: 8 })
+        }
+
+        // 邮箱输入
+        Column({ space: 8 }) {
+          Text('新邮箱')
+            .fontSize(14)
+            .fontColor('#666666')
+            .alignSelf(ItemAlign.Start)
+          TextInput({ placeholder: '请输入新邮箱', text: this.editEmail })
+            .width('100%')
+            .height(48)
+            .borderRadius(12)
+            .backgroundColor('#F5F7FA')
+            .onChange((value: string) => {
+              this.editEmail = value;
+            })
+        }
+
+        // 按钮
+        Row({ space: 12 }) {
           Button('取消', { type: ButtonType.Normal, stateEffect: true })
             .layoutWeight(1)
-            .height(44)
+            .height(48)
             .backgroundColor('#F5F5F5')
-            .fontColor('#333333')
-            .margin({ right: 8 })
+            .fontColor('#666666')
+            .fontSize(16)
+            .borderRadius(24)
             .onClick(() => {
               this.showEditEmail = false;
             })
 
           Button('保存', { type: ButtonType.Normal, stateEffect: true })
             .layoutWeight(1)
-            .height(44)
+            .height(48)
             .backgroundColor('#007DFF')
             .fontColor('#FFFFFF')
+            .fontSize(16)
+            .fontWeight(FontWeight.Medium)
+            .borderRadius(24)
             .onClick(() => {
               this.saveEmail();
             })
         }
         .width('100%')
       }
-      .width('90%')
-      .padding(20)
+      .width('88%')
+      .padding(24)
       .backgroundColor('#FFFFFF')
-      .borderRadius(12)
+      .borderRadius(24)
       .shadow({
-        radius: 20,
-        color: '#000000',
+        radius: 30,
+        color: 'rgba(0,0,0,0.15)',
         offsetX: 0,
-        offsetY: 4
+        offsetY: 10
       })
     }
     .width('100%')
@@ -1308,13 +1589,107 @@ export struct ProfilePage {
   }
 
   // 退出登录
-  logout() {
+  logout(): void {
     AppStorage.setOrCreate('isLoggedIn', false);
     AppStorage.setOrCreate('userToken', '');
     AppStorage.setOrCreate('userInfo', '{}');
+    AppStorage.setOrCreate('loginTimestamp', 0); // 清除登录时间戳
     this.isLoggedIn = false;
     this.userInfo = new UserInfo();
     this.salesStats = new SalesStats();
     ToastUtils.showToast('已退出登录');
+  }
+
+  // 获取个人资料设置项
+  private getProfileSettingsItems(): SettingsItem[] {
+    const items: SettingsItem[] = [];
+
+    const avatarItem: SettingsItem = {
+      icon: '📷',
+      title: '头像',
+      value: '',
+      showAvatar: true,
+      action: (): void => { this.changeAvatar(); }
+    };
+    items.push(avatarItem);
+
+    const nicknameItem: SettingsItem = {
+      icon: '✏️',
+      title: '昵称',
+      value: this.userInfo.username || '未设置',
+      showAvatar: false,
+      action: (): void => {
+        this.editUsername = this.userInfo.username || '';
+        this.editAddress = this.userInfo.address || '';
+        this.showEditProfile = true;
+      }
+    };
+    items.push(nicknameItem);
+
+    const addressItem: SettingsItem = {
+      icon: '📍',
+      title: '地址',
+      value: this.userInfo.address || '未设置',
+      showAvatar: false,
+      action: (): void => {
+        this.editUsername = this.userInfo.username || '';
+        this.editAddress = this.userInfo.address || '';
+        this.showEditProfile = true;
+      }
+    };
+    items.push(addressItem);
+
+    return items;
+  }
+
+  // 获取社交功能设置项
+  private getSocialSettingsItems(): SettingsItem[] {
+    const items: SettingsItem[] = [];
+
+    const followItem: SettingsItem = {
+      icon: '❤️',
+      title: '我的关注',
+      value: '查看关注的用户',
+      showAvatar: false,
+      action: (): void => {
+        router.pushUrl({ url: 'pages/MyFollowsPage' });
+      }
+    };
+    items.push(followItem);
+
+    return items;
+  }
+
+  // 获取账号安全设置项
+  private getSecuritySettingsItems(): SettingsItem[] {
+    const items: SettingsItem[] = [];
+
+    const passwordItem: SettingsItem = {
+      icon: '🔒',
+      title: '密码',
+      value: '修改密码',
+      showAvatar: false,
+      action: (): void => {
+        this.oldPassword = '';
+        this.newPassword = '';
+        this.confirmPassword = '';
+        this.showEditPassword = true;
+      }
+    };
+    items.push(passwordItem);
+
+    const emailItem: SettingsItem = {
+      icon: '📧',
+      title: '邮箱',
+      value: this.userInfo.email || '未设置',
+      showAvatar: false,
+      action: (): void => {
+        this.editEmail = this.userInfo.email || '';
+        this.showEditEmail = true;
+      }
+    };
+    items.push(emailItem);
+
+    return items;
   }
 }

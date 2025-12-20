@@ -182,3 +182,76 @@ def update_email(_jwt_claims=None):
             return error_response('邮箱更新失败', 500)
     except Exception as e:
         return error_response(f'更新邮箱失败: {str(e)}', 500)
+
+
+@user_bp.route('/Users/HuaweiLogin', methods=['POST'])
+def huawei_login():
+    """华为账号登录接口"""
+    data = request.get_json(silent=True) or {}
+    open_id = str(data.get('openID', '')).strip()
+    union_id = str(data.get('unionID', '')).strip()
+    display_name = str(data.get('displayName', '')).strip() or '华为用户'
+    avatar_uri = str(data.get('avatarUri', '')).strip()
+    authorization_code = str(data.get('authorizationCode', '')).strip()
+
+    if not open_id:
+        return error_response('缺少华为账号标识', 400)
+
+    try:
+        # 查找是否已有该华为账号关联的用户
+        user = UserModel.find_by_huawei_open_id(open_id)
+        
+        if user:
+            # 已有用户，更新信息并登录
+            UserModel.update_huawei_user_info(user['id'], display_name, avatar_uri)
+            UserModel.update_last_login(user['id'])
+        else:
+            # 新用户，创建账号
+            # 生成唯一用户名
+            username = f"huawei_{open_id[:8]}"
+            # 检查用户名是否已存在，如果存在则添加随机后缀
+            existing = UserModel.find_by_username(username)
+            if existing:
+                import time
+                username = f"huawei_{open_id[:8]}_{int(time.time()) % 10000}"
+            
+            # 创建用户（使用随机密码，因为华为登录不需要密码）
+            import secrets
+            random_password = secrets.token_hex(16)
+            email = f"{open_id[:8]}@huawei.user"
+            
+            user_id = UserModel.create_huawei_user(
+                username=username,
+                password=random_password,
+                email=email,
+                avatar=avatar_uri,
+                huawei_open_id=open_id,
+                huawei_union_id=union_id,
+                display_name=display_name
+            )
+            user = UserModel.find_by_id(user_id)
+
+        if not user:
+            return error_response('创建用户失败', 500)
+
+        # 生成token
+        token = generate_token({
+            'uid': user['id'],
+            'username': user['username'],
+            'userType': user.get('user_type', 'customer'),
+            'loginType': 'huawei'
+        })
+
+        user_info = {
+            'id': user['id'],
+            'username': user['username'],
+            'email': user.get('email', ''),
+            'userType': user.get('user_type', 'customer'),
+            'avatar': user.get('avatar', '') or avatar_uri,
+            'displayName': display_name,
+            'token': token,
+            'loginType': 'huawei'
+        }
+        return success_response('华为账号登录成功', user_info)
+    except Exception as e:
+        return error_response(f'华为账号登录失败: {str(e)}', 500)

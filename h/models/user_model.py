@@ -162,3 +162,61 @@ class UserModel:
                 return users
         finally:
             connection.close()
+
+
+    @staticmethod
+    def find_by_huawei_open_id(huawei_open_id):
+        """根据华为OpenID查找用户"""
+        connection = get_db_connection()
+        try:
+            with connection.cursor() as cursor:
+                sql = """
+                    SELECT id, username, password, user_type, email, avatar, address, 
+                           created_at, last_login, huawei_open_id, huawei_union_id
+                    FROM users WHERE huawei_open_id = %s
+                """
+                cursor.execute(sql, (huawei_open_id,))
+                return cursor.fetchone()
+        finally:
+            connection.close()
+
+    @staticmethod
+    def create_huawei_user(username, password, email, avatar, huawei_open_id, huawei_union_id, display_name):
+        """创建华为账号关联的用户"""
+        connection = get_db_connection()
+        try:
+            with connection.cursor() as cursor:
+                hashed_pwd = hash_password(password)
+                sql = """
+                    INSERT INTO users (username, password, email, user_type, avatar, huawei_open_id, huawei_union_id)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """
+                cursor.execute(sql, (username, hashed_pwd, email, 'customer', avatar, huawei_open_id, huawei_union_id))
+                connection.commit()
+                return cursor.lastrowid
+        finally:
+            connection.close()
+
+    @staticmethod
+    def update_huawei_user_info(user_id, display_name, avatar_uri):
+        """更新华为用户信息"""
+        connection = get_db_connection()
+        try:
+            with connection.cursor() as cursor:
+                updates = []
+                params = []
+                
+                if avatar_uri:
+                    updates.append("avatar = %s")
+                    params.append(avatar_uri)
+                
+                if not updates:
+                    return True
+                
+                params.append(user_id)
+                sql = f"UPDATE users SET {', '.join(updates)} WHERE id = %s"
+                cursor.execute(sql, params)
+                connection.commit()
+                return cursor.rowcount > 0
+        finally:
+            connection.close()

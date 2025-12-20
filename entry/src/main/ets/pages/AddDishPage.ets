@@ -24,7 +24,7 @@ export struct AddDishPage {
   @State newDish: NewDishForm = new NewDishForm();
   @StorageLink('appMode') appMode: AppMode = AppMode.MERCHANT;
   @State isLoading: boolean = false;
-  @State categories: string[] = ['热菜', '凉菜', '主食', '汤类', '饮料', '甜品', '招牌菜'];
+  @State categories: string[] = ['热菜', '凉菜', '汤品', '主食', '饮料', '甜品'];
   @State showImagePicker: boolean = false; // 是否显示图片选择对话框
   @State imageProcessing: boolean = false;
 

@@ -18,14 +18,11 @@ class PostModel:
                 where_clauses = []
                 params = []
                 
-                # 如果是指定关注用户的帖子
-                if category == "关注" and following_ids:
-                    if following_ids:
-                        placeholders = ', '.join(['%s'] * len(following_ids))
-                        where_clauses.append(f"user_id IN ({placeholders})")
-                        params.extend(following_ids)
-                    else:
-                        # 如果没有关注任何人，返回空列表
+                # 如果是"关注"分类
+                if category == "关注":
+                    # following_ids为None表示用户未登录，为[]表示没有关注任何人
+                    if following_ids is None or len(following_ids) == 0:
+                        # 没有关注任何人，返回空列表
                         return {
                             'posts': [],
                             'total': 0,
@@ -33,6 +30,10 @@ class PostModel:
                             'limit': limit,
                             'pages': 0
                         }
+                    else:
+                        placeholders = ', '.join(['%s'] * len(following_ids))
+                        where_clauses.append(f"p.user_id IN ({placeholders})")
+                        params.extend(following_ids)
                 
                 where_sql = " WHERE " + " AND ".join(where_clauses) if where_clauses else ""
                 
