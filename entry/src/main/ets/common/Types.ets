@@ -456,6 +456,17 @@ export interface CreateCommentResponse {
   comment_count: number;
 }
 
+// 删除帖子请求
+export interface DeletePostRequest {
+  post_id: number;
+}
+
+// 用户帖子响应
+export interface UserPostsResponse {
+  posts: Post[];
+  pagination: Pagination;
+}
+
 // 关注相关类型
 export interface FollowRequest {
   user_id: number;

@@ -710,6 +710,59 @@ def create_post(_jwt_claims=None):
         return error_response(f"发布失败: {str(e)}", 500)
 
 
+@data_bp.route("/posts/user/<int:user_id>", methods=["GET"])
+def get_user_posts(user_id):
+    """获取指定用户的帖子列表"""
+    try:
+        page = int(request.args.get("page", 1))
+        limit = int(request.args.get("limit", 10))
+
+        result = PostModel.get_by_user_id(user_id, page, limit)
+
+        return success_response("获取用户帖子成功", {
+            "posts": result['posts'],
+            "pagination": {
+                "page": result['page'],
+                "limit": result['limit'],
+                "total": result['total'],
+                "pages": result['pages']
+            }
+        })
+    except Exception as e:
+        return error_response(f"获取用户帖子失败: {str(e)}", 500)
+
+
+@data_bp.route("/posts/delete", methods=["POST"])
+@login_required
+def delete_post(_jwt_claims=None):
+    """删除帖子"""
+    try:
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        payload = decode_token(token)
+        current_user_id = payload.get('uid') if payload else None
+
+        if not current_user_id:
+            return error_response("用户未登录", 401)
+
+        data = request.get_json(silent=True) or {}
+        post_id = data.get("post_id")
+
+        if not post_id:
+            return error_response("缺少帖子ID", 400)
+
+        # 删除帖子（会验证所有权）
+        try:
+            result = PostModel.delete(post_id, current_user_id)
+            if result:
+                return success_response("删除成功")
+            else:
+                return error_response("帖子不存在", 404)
+        except PermissionError as e:
+            return error_response(str(e), 403)
+    except Exception as e:
+        return error_response(f"删除失败: {str(e)}", 500)
+
+
 @data_bp.route("/posts/like", methods=["POST"])
 @login_required
 def like_post(_jwt_claims=None):

@@ -180,11 +180,21 @@ class PostModel:
             connection.close()
 
     @staticmethod
-    def delete(post_id):
-        """删除帖子"""
+    def delete(post_id, user_id=None):
+        """删除帖子，如果提供user_id则验证帖子所有权"""
         connection = get_db_connection()
         try:
             with connection.cursor() as cursor:
+                # 如果提供了user_id，验证帖子属于该用户
+                if user_id:
+                    check_sql = "SELECT user_id FROM posts WHERE id = %s"
+                    cursor.execute(check_sql, (post_id,))
+                    post = cursor.fetchone()
+                    if not post:
+                        return False
+                    if post['user_id'] != user_id:
+                        raise PermissionError("无权删除此帖子")
+                
                 sql = "DELETE FROM posts WHERE id = %s"
                 cursor.execute(sql, (post_id,))
                 connection.commit()
@@ -192,6 +202,67 @@ class PostModel:
         except Exception as e:
             connection.rollback()
             raise e
+        finally:
+            connection.close()
+
+    @staticmethod
+    def get_by_user_id(user_id, page=1, limit=10):
+        """获取指定用户的帖子列表"""
+        connection = get_db_connection()
+        try:
+            with connection.cursor() as cursor:
+                offset = (page - 1) * limit
+                
+                # 获取用户帖子列表
+                sql = """
+                    SELECT p.id, p.user_id, p.title, p.content, p.image_urls, 
+                           p.likes, p.comment_count, p.created_at,
+                           u.username, u.avatar
+                    FROM posts p
+                    JOIN users u ON p.user_id = u.id
+                    WHERE p.user_id = %s
+                    ORDER BY p.created_at DESC
+                    LIMIT %s OFFSET %s
+                """
+                cursor.execute(sql, (user_id, limit, offset))
+                posts = cursor.fetchall()
+                
+                # 获取总数
+                count_sql = "SELECT COUNT(*) as total FROM posts WHERE user_id = %s"
+                cursor.execute(count_sql, (user_id,))
+                total = cursor.fetchone()['total']
+                
+                # 格式化帖子数据
+                formatted_posts = []
+                for post in posts:
+                    # 解析图片URLs
+                    image_urls = post.get('image_urls', '') or ''
+                    images = [url.strip() for url in image_urls.split(',') if url.strip()]
+                    
+                    formatted_post = {
+                        'id': post['id'],
+                        'user_id': post['user_id'],
+                        'username': post['username'],
+                        'avatar': post.get('avatar', ''),
+                        'content': post['content'],
+                        'title': post.get('title', ''),
+                        'imageUrls': image_urls,
+                        'images': images,
+                        'videos': [],
+                        'likeCount': post.get('likes', 0),
+                        'commentCount': post.get('comment_count', 0),
+                        'isLiked': False,
+                        'createTime': int(post['created_at'].timestamp()) if post.get('created_at') else 0
+                    }
+                    formatted_posts.append(formatted_post)
+                
+                return {
+                    'posts': formatted_posts,
+                    'total': total,
+                    'page': page,
+                    'limit': limit,
+                    'pages': (total + limit - 1) // limit if limit else 1
+                }
         finally:
             connection.close()
 

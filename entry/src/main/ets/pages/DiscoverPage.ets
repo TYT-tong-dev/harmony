@@ -156,6 +156,14 @@ export struct DiscoverPage {
     this.ensurePostFormInitialized();
   }
 
+  onPageShow(): void {
+    // 页面显示时刷新帖子列表，确保与我的页面数据同步
+    const token: string = AppStorage.get<string>('userToken') || '';
+    if (token) {
+      this.loadPosts(true);
+    }
+  }
+
   @Builder
   DiscoverHeader() {
     Column() {

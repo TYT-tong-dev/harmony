@@ -1,5 +1,5 @@
 // ProfilePage.ets
-import { UserInfo, SalesStats, ApiResponse, TopDish, AppMode } from '../common/Types';
+import { UserInfo, SalesStats, ApiResponse, TopDish, AppMode, Post, DeletePostRequest } from '../common/Types';
 import { ApiUtils, ToastUtils, AppModeManager, RouterUtils } from '../common/Utils';
 import router from '@ohos.router';
 import picker from '@ohos.file.picker';
@@ -87,6 +87,12 @@ export struct ProfilePage {
   @State newPassword: string = '';
   @State confirmPassword: string = '';
   @State editEmail: string = '';
+  
+  // 我的帖子状态
+  @State myPosts: Post[] = [];
+  @State myPostsLoading: boolean = false;
+  @State showDeleteConfirm: boolean = false;
+  @State postToDelete: Post | null = null;
 
   private context?: common.UIAbilityContext;
   private atManager?: abilityAccessCtrl.AtManager;
@@ -110,6 +116,14 @@ export struct ProfilePage {
     if (this.isLoggedIn) {
       this.loadUserProfile();
       this.loadSalesStats();
+      this.loadMyPosts();
+    }
+  }
+
+  onPageShow() {
+    // 页面显示时刷新我的帖子，确保与发现页数据同步
+    if (this.isLoggedIn && this.userInfo.id) {
+      this.loadMyPosts();
     }
   }
 
@@ -144,6 +158,11 @@ export struct ProfilePage {
       if (this.showEditEmail) {
         this.EditEmailDialog()
       }
+
+      // 删除帖子确认对话框
+      if (this.showDeleteConfirm) {
+        this.DeleteConfirmDialog()
+      }
     }
     .width('100%')
     .height('100%')
@@ -167,6 +186,9 @@ export struct ProfilePage {
         } else {
           this.CustomerTableCard()
         }
+
+        // 我的帖子区域
+        this.MyPostsSection()
 
         // 设置部分
         this.SettingsSection()
@@ -1691,5 +1713,310 @@ export struct ProfilePage {
     items.push(emailItem);
 
     return items;
+  }
+
+  // ==================== 我的帖子相关方法 ====================
+
+  // 加载我的帖子
+  private async loadMyPosts(): Promise<void> {
+    if (!this.userInfo.id) {
+      return;
+    }
+    this.myPostsLoading = true;
+    try {
+      const response: ApiResponse = await ApiUtils.get(`/posts/user/${this.userInfo.id}?page=1&limit=20`);
+      if (response.statusCode === 200 && response.data) {
+        const data = response.data as Record<string, Object>;
+        const posts = data['posts'] as Post[];
+        this.myPosts = posts || [];
+      }
+    } catch (error) {
+      console.error('加载我的帖子失败:', JSON.stringify(error));
+    } finally {
+      this.myPostsLoading = false;
+    }
+  }
+
+  // 删除帖子
+  private async deletePost(post: Post): Promise<void> {
+    try {
+      const request: DeletePostRequest = { post_id: post.id };
+      const response: ApiResponse = await ApiUtils.post('/posts/delete', request);
+      if (response.statusCode === 200) {
+        // 从列表中移除
+        this.myPosts = this.myPosts.filter((p: Post) => p.id !== post.id);
+        ToastUtils.showToast('删除成功');
+      } else {
+        ToastUtils.showToast(response.message || '删除失败');
+      }
+    } catch (error) {
+      console.error('删除帖子失败:', JSON.stringify(error));
+      ToastUtils.showToast('删除失败，请重试');
+    }
+    this.showDeleteConfirm = false;
+    this.postToDelete = null;
+  }
+
+  // 格式化时间
+  private formatPostTime(timestamp: number): string {
+    if (!timestamp) {
+      return '';
+    }
+    const date = new Date(timestamp * 1000);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) {
+      return '刚刚';
+    } else if (minutes < 60) {
+      return `${minutes}分钟前`;
+    } else if (hours < 24) {
+      return `${hours}小时前`;
+    } else if (days < 7) {
+      return `${days}天前`;
+    } else {
+      return `${date.getMonth() + 1}月${date.getDate()}日`;
+    }
+  }
+
+  @Builder
+  MyPostsSection() {
+    Column({ space: 16 }) {
+      // 标题
+      Row() {
+        Column()
+          .width(4)
+          .height(20)
+          .borderRadius(2)
+          .backgroundColor('#FF6B6B')
+          .margin({ right: 10 })
+        Text('我的帖子')
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#1A1A1A')
+        Blank()
+        Text(`${this.myPosts.length}篇`)
+          .fontSize(14)
+          .fontColor('#888888')
+      }
+      .width('100%')
+
+      if (this.myPostsLoading) {
+        // 加载中
+        Column({ space: 12 }) {
+          LoadingProgress()
+            .width(32)
+            .height(32)
+            .color('#007DFF')
+          Text('加载中...')
+            .fontSize(14)
+            .fontColor('#888888')
+        }
+        .width('100%')
+        .padding(40)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+      } else if (this.myPosts.length === 0) {
+        // 空状态
+        this.MyPostsEmptyState()
+      } else {
+        // 帖子列表
+        Column({ space: 12 }) {
+          ForEach(this.myPosts, (post: Post) => {
+            this.MyPostItem(post)
+          }, (post: Post) => post.id.toString())
+        }
+      }
+    }
+    .width('100%')
+    .padding(20)
+    .backgroundColor('#FFFFFF')
+    .margin({ top: 12, left: 16, right: 16 })
+    .borderRadius(20)
+    .shadow({
+      radius: 16,
+      color: 'rgba(0,0,0,0.05)',
+      offsetX: 0,
+      offsetY: 4
+    })
+  }
+
+  @Builder
+  MyPostsEmptyState() {
+    Column({ space: 16 }) {
+      Text('📝')
+        .fontSize(48)
+      Text('还没有发布帖子')
+        .fontSize(16)
+        .fontColor('#666666')
+      Text('去发现页分享你的美食故事吧')
+        .fontSize(14)
+        .fontColor('#999999')
+    }
+    .width('100%')
+    .padding(40)
+    .justifyContent(FlexAlign.Center)
+    .alignItems(HorizontalAlign.Center)
+  }
+
+  @Builder
+  MyPostItem(post: Post) {
+    Column({ space: 12 }) {
+      // 帖子内容
+      Row({ space: 12 }) {
+        Column({ space: 8 }) {
+          Text(post.content)
+            .fontSize(15)
+            .fontColor('#1A1A1A')
+            .maxLines(3)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .lineHeight(22)
+
+          // 图片预览
+          if (post.images && post.images.length > 0) {
+            Row({ space: 8 }) {
+              ForEach(post.images.slice(0, 3), (image: string, index: number) => {
+                Image(this.getImagePath(image))
+                  .width(60)
+                  .height(60)
+                  .borderRadius(8)
+                  .objectFit(ImageFit.Cover)
+              }, (image: string, index: number) => `${post.id}-img-${index}`)
+              if (post.images.length > 3) {
+                Column() {
+                  Text(`+${post.images.length - 3}`)
+                    .fontSize(12)
+                    .fontColor('#FFFFFF')
+                }
+                .width(60)
+                .height(60)
+                .borderRadius(8)
+                .backgroundColor('rgba(0,0,0,0.5)')
+                .justifyContent(FlexAlign.Center)
+              }
+            }
+          }
+
+          // 统计信息和时间
+          Row() {
+            Row({ space: 16 }) {
+              Row({ space: 4 }) {
+                Text('❤️')
+                  .fontSize(12)
+                Text(`${post.likeCount}`)
+                  .fontSize(12)
+                  .fontColor('#888888')
+              }
+              Row({ space: 4 }) {
+                Text('💬')
+                  .fontSize(12)
+                Text(`${post.commentCount}`)
+                  .fontSize(12)
+                  .fontColor('#888888')
+              }
+            }
+            Blank()
+            Text(this.formatPostTime(post.createTime))
+              .fontSize(12)
+              .fontColor('#BBBBBB')
+          }
+          .width('100%')
+        }
+        .layoutWeight(1)
+
+        // 删除按钮
+        Column() {
+          Text('🗑️')
+            .fontSize(20)
+        }
+        .width(40)
+        .height(40)
+        .borderRadius(20)
+        .backgroundColor('#FFF0F0')
+        .justifyContent(FlexAlign.Center)
+        .onClick(() => {
+          this.postToDelete = post;
+          this.showDeleteConfirm = true;
+        })
+      }
+      .width('100%')
+    }
+    .width('100%')
+    .padding(14)
+    .backgroundColor('#FAFAFA')
+    .borderRadius(14)
+  }
+
+  @Builder
+  DeleteConfirmDialog() {
+    Stack({ alignContent: Alignment.Center }) {
+      // 背景遮罩
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor('rgba(0,0,0,0.5)')
+        .onClick(() => {
+          this.showDeleteConfirm = false;
+          this.postToDelete = null;
+        })
+
+      // 对话框
+      Column({ space: 20 }) {
+        Text('🗑️')
+          .fontSize(40)
+        Text('确认删除')
+          .fontSize(20)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#1A1A1A')
+        Text('删除后将无法恢复，确定要删除这条帖子吗？')
+          .fontSize(14)
+          .fontColor('#666666')
+          .textAlign(TextAlign.Center)
+
+        Row({ space: 12 }) {
+          Button('取消', { type: ButtonType.Normal })
+            .layoutWeight(1)
+            .height(44)
+            .backgroundColor('#F5F5F5')
+            .fontColor('#666666')
+            .fontSize(16)
+            .borderRadius(22)
+            .onClick(() => {
+              this.showDeleteConfirm = false;
+              this.postToDelete = null;
+            })
+
+          Button('删除', { type: ButtonType.Normal })
+            .layoutWeight(1)
+            .height(44)
+            .backgroundColor('#FF3B30')
+            .fontColor('#FFFFFF')
+            .fontSize(16)
+            .fontWeight(FontWeight.Medium)
+            .borderRadius(22)
+            .onClick(() => {
+              if (this.postToDelete) {
+                this.deletePost(this.postToDelete);
+              }
+            })
+        }
+        .width('100%')
+      }
+      .width('80%')
+      .padding(24)
+      .backgroundColor('#FFFFFF')
+      .borderRadius(24)
+      .shadow({
+        radius: 30,
+        color: 'rgba(0,0,0,0.15)',
+        offsetX: 0,
+        offsetY: 10
+      })
+    }
+    .width('100%')
+    .height('100%')
   }
 }
