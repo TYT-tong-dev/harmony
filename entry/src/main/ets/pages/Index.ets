@@ -31,12 +31,21 @@ struct Index {
       return;
     }
 
+    // 延迟检查登录状态，确保 PersistentStorage 数据已加载
+    setTimeout(() => {
+      this.checkLoginAndNavigate();
+    }, 100);
+  }
+
+  private checkLoginAndNavigate() {
+    // 从 AppStorage 获取最新的登录状态
+    const isLoggedIn = AppStorage.get<boolean>('isLoggedIn') || false;
+    const userToken = AppStorage.get<string>('userToken') || '';
+
     // 检查是否已登录（持久化的登录状态）
-    if (this.isLoggedIn && this.userToken) {
+    if (isLoggedIn && userToken) {
       // 已登录，直接跳转到主页
-      setTimeout(() => {
-        this.navigateToMainDirect();
-      }, 300);
+      this.navigateToMainDirect();
       return;
     }
 
@@ -44,7 +53,8 @@ struct Index {
       this.navigateToMainDirect();
       return;
     }
-    // 页面出现时添加淡入动画
+    
+    // 未登录，显示欢迎页面
     this.opacityValue = 1;
   }
 
