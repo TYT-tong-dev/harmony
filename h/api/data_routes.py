@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import itertools
+import os
 import time
+import uuid
 from copy import deepcopy
 from typing import Dict, List
+from werkzeug.utils import secure_filename
 
-from flask import Blueprint, request
+from flask import Blueprint, request, current_app
 
 from utils.response_utils import error_response, success_response
 from utils.jwt_utils import login_required, decode_token
@@ -250,6 +253,102 @@ def get_dish_list():
         return success_response("获取菜品成功", {"dishes": formatted_dishes})
     except Exception as e:
         return error_response(f"获取菜品失败: {str(e)}", 500)
+
+
+# 允许的图片扩展名
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+@data_bp.route("/upload/base64", methods=["POST"])
+@login_required
+def upload_base64_image(_jwt_claims=None):
+    """上传Base64编码的图片到服务器"""
+    try:
+        data = request.get_json(silent=True) or {}
+        base64_data = data.get("data", "")
+        filename = data.get("filename", "")
+        upload_type = data.get("type", "dishes")
+        
+        if not base64_data:
+            return error_response("没有图片数据", 400)
+        
+        # 解码Base64
+        import base64
+        try:
+            image_data = base64.b64decode(base64_data)
+        except Exception as e:
+            return error_response(f"Base64解码失败: {str(e)}", 400)
+        
+        # 生成文件名
+        ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'jpg'
+        if ext not in ALLOWED_EXTENSIONS:
+            ext = 'jpg'
+        new_filename = f"{upload_type}_{int(time.time())}_{uuid.uuid4().hex[:8]}.{ext}"
+        
+        # 确保目录存在
+        base_dir = os.path.dirname(os.path.dirname(__file__))
+        upload_dir = os.path.join(base_dir, 'static', 'images', upload_type)
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # 保存文件
+        filepath = os.path.join(upload_dir, new_filename)
+        with open(filepath, 'wb') as f:
+            f.write(image_data)
+        
+        # 返回相对路径（用于存储到数据库）
+        relative_path = f"images/{upload_type}/{new_filename}"
+        
+        return success_response("上传成功", {
+            "url": relative_path,
+            "filename": new_filename
+        })
+    except Exception as e:
+        return error_response(f"上传失败: {str(e)}", 500)
+
+
+@data_bp.route("/upload/image", methods=["POST"])
+@login_required
+def upload_image(_jwt_claims=None):
+    """上传图片到服务器"""
+    try:
+        if 'file' not in request.files:
+            return error_response("没有上传文件", 400)
+        
+        file = request.files['file']
+        if file.filename == '':
+            return error_response("没有选择文件", 400)
+        
+        if not allowed_file(file.filename):
+            return error_response("不支持的文件格式", 400)
+        
+        # 获取上传类型（dishes, avatars, posts等）
+        upload_type = request.form.get('type', 'dishes')
+        
+        # 生成唯一文件名
+        ext = file.filename.rsplit('.', 1)[1].lower()
+        filename = f"{upload_type}_{int(time.time())}_{uuid.uuid4().hex[:8]}.{ext}"
+        
+        # 确保目录存在
+        base_dir = os.path.dirname(os.path.dirname(__file__))
+        upload_dir = os.path.join(base_dir, 'static', 'images', upload_type)
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # 保存文件
+        filepath = os.path.join(upload_dir, filename)
+        file.save(filepath)
+        
+        # 返回相对路径（用于存储到数据库）
+        relative_path = f"images/{upload_type}/{filename}"
+        
+        return success_response("上传成功", {
+            "url": relative_path,
+            "filename": filename
+        })
+    except Exception as e:
+        return error_response(f"上传失败: {str(e)}", 500)
 
 
 @data_bp.route("/dishes/add", methods=["POST"])

@@ -542,14 +542,81 @@ export struct AddDishPage {
     }
     this.imageProcessing = true;
     try {
-      const storedPath = await this.persistDishImage(imageUri);
-      this.newDish.imageUrl = storedPath;
-    ToastUtils.showToast('图片选择成功');
+      // 上传图片到服务器
+      const serverPath = await this.uploadImageToServer(imageUri);
+      if (serverPath) {
+        this.newDish.imageUrl = serverPath;
+        ToastUtils.showToast('图片上传成功');
+      } else {
+        // 如果上传失败，回退到本地存储
+        const storedPath = await this.persistDishImage(imageUri);
+        this.newDish.imageUrl = storedPath;
+        ToastUtils.showToast('图片已保存到本地');
+      }
     } catch (error) {
       console.error('处理图片失败:' + JSON.stringify(error));
       ToastUtils.showToast('图片处理失败，请重试');
     } finally {
       this.imageProcessing = false;
+    }
+  }
+
+  // 上传图片到服务器
+  private async uploadImageToServer(imageUri: string): Promise<string> {
+    try {
+      const sourcePath = this.resolveFilePath(imageUri);
+      if (!sourcePath) {
+        console.error('无法解析图片路径');
+        return '';
+      }
+
+      // 检查文件是否存在
+      try {
+        fs.accessSync(sourcePath);
+      } catch (error) {
+        console.error('图片文件不存在:' + sourcePath);
+        return '';
+      }
+
+      // 读取文件内容
+      const file = fs.openSync(sourcePath, fs.OpenMode.READ_ONLY);
+      const stat = fs.statSync(sourcePath);
+      const buffer = new ArrayBuffer(stat.size);
+      fs.readSync(file.fd, buffer);
+      fs.closeSync(file);
+
+      // 转为Base64
+      const uint8Array = new Uint8Array(buffer);
+      let binary = '';
+      for (let i = 0; i < uint8Array.length; i++) {
+        binary += String.fromCharCode(uint8Array[i]);
+      }
+      const base64Data = btoa(binary);
+
+      // 获取文件名
+      const fileName = sourcePath.split('/').pop() || `dish_${Date.now()}.jpg`;
+
+      // 上传到服务器
+      const uploadData = {
+        filename: fileName,
+        type: 'dishes',
+        data: base64Data
+      };
+
+      const response: ApiResponse = await ApiUtils.post('/upload/base64', uploadData);
+      if (response.statusCode === 200 && response.data) {
+        const data = response.data as Record<string, string>;
+        const serverUrl = data['url'] || '';
+        if (serverUrl) {
+          console.log('图片上传成功，服务器路径:' + serverUrl);
+          return serverUrl;
+        }
+      }
+      console.error('上传响应异常:' + JSON.stringify(response));
+      return '';
+    } catch (error) {
+      console.error('上传图片到服务器失败:' + JSON.stringify(error));
+      return '';
     }
   }
 
@@ -721,6 +788,10 @@ export struct AddDishPage {
     }
     if (this.newDish.imageUrl.startsWith('app.media.')) {
       return this.newDish.imageUrl;
+    }
+    // 如果是服务器路径（images/开头），拼接服务器URL
+    if (this.newDish.imageUrl.startsWith('images/')) {
+      return `http://10.12.8.110:5000/${this.newDish.imageUrl}`;
     }
     return this.toAbsoluteDishPath(this.newDish.imageUrl);
   }

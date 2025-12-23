@@ -3,6 +3,7 @@ import notificationManager from '@ohos.notificationManager';
 import { BusinessError } from '@ohos.base';
 import wantAgent, { WantAgent } from '@ohos.app.ability.wantAgent';
 import vibrator from '@ohos.vibrator';
+import Want from '@ohos.app.ability.Want';
 
 // 通知类型
 export enum NotificationType {
@@ -11,34 +12,38 @@ export enum NotificationType {
 }
 
 // 通知配置
-export interface NotificationConfig {
-  enableVibrate: boolean;
-  enableSound: boolean;
+export class NotificationConfig {
+  enableVibrate: boolean = true;
+  enableSound: boolean = true;
 }
 
 // 通知数据
-export interface NotificationData {
-  id: number;
-  type: NotificationType;
-  title: string;
-  content: string;
+export class NotificationData {
+  id: number = 0;
+  type: NotificationType = NotificationType.SYSTEM;
+  title: string = '';
+  content: string = '';
   extra?: Record<string, string>;
   config?: NotificationConfig;
 }
 
 // 震动模式
-const VIBRATE_PATTERNS: Record<string, number> = {
-  order_status: 300,
-  system: 200
-};
+class VibratePatterns {
+  static readonly ORDER_STATUS: number = 300;
+  static readonly SYSTEM: number = 200;
+
+  static getDuration(type: NotificationType): number {
+    if (type === NotificationType.ORDER_STATUS) {
+      return VibratePatterns.ORDER_STATUS;
+    }
+    return VibratePatterns.SYSTEM;
+  }
+}
 
 // 顾客端通知工具类
 export class NotificationUtils {
   private static notificationId: number = 1;
-  private static defaultConfig: NotificationConfig = {
-    enableVibrate: true,
-    enableSound: true
-  };
+  private static defaultConfig: NotificationConfig = new NotificationConfig();
 
   // 请求通知权限
   static async requestPermission(): Promise<boolean> {
@@ -60,14 +65,16 @@ export class NotificationUtils {
   // 触发震动
   private static async triggerVibrate(type: NotificationType): Promise<void> {
     try {
-      const duration = VIBRATE_PATTERNS[type] || 200;
-      await vibrator.startVibration({
+      const duration = VibratePatterns.getDuration(type);
+      const vibrateEffect: vibrator.VibrateTime = {
         type: 'time',
         duration: duration
-      }, {
+      };
+      const vibrateAttr: vibrator.VibrateAttribute = {
         id: 0,
         usage: 'notification'
-      });
+      };
+      await vibrator.startVibration(vibrateEffect, vibrateAttr);
     } catch (error) {
       const err = error as BusinessError;
       console.error('[NotificationUtils] 震动触发失败: ' + err.message);
@@ -79,25 +86,33 @@ export class NotificationUtils {
     try {
       const config = data.config || NotificationUtils.defaultConfig;
 
+      // 构建参数对象
+      const extraParams: Record<string, Object> = {};
+      extraParams['notificationType'] = data.type as string;
+      extraParams['notificationId'] = data.id.toString();
+      if (data.extra) {
+        const keys = Object.keys(data.extra);
+        for (const key of keys) {
+          extraParams[key] = data.extra[key] as Object;
+        }
+      }
+
+      // 创建Want对象
+      const want: Want = {
+        bundleName: 'com.example.h',
+        abilityName: 'CustomerAbility',
+        parameters: extraParams
+      };
+
       // 创建点击通知后的跳转意图
-      const wantAgentInfo: wantAgent.WantAgentInfo = {
-        wants: [
-          {
-            bundleName: 'com.example.h',
-            abilityName: 'CustomerAbility',
-            parameters: {
-              notificationType: data.type,
-              notificationId: data.id.toString(),
-              ...data.extra
-            }
-          }
-        ],
+      const wantInfo: wantAgent.WantAgentInfo = {
+        wants: [want],
         actionType: wantAgent.OperationType.START_ABILITY,
         requestCode: 0,
         wantAgentFlags: [wantAgent.WantAgentFlags.UPDATE_PRESENT_FLAG]
       };
 
-      const agent: WantAgent = await wantAgent.getWantAgent(wantAgentInfo);
+      const agent: WantAgent = await wantAgent.getWantAgent(wantInfo);
 
       // 构建通知请求
       const notificationRequest: notificationManager.NotificationRequest = {
@@ -137,16 +152,16 @@ export class NotificationUtils {
     status: string,
     message: string
   ): Promise<boolean> {
-    return this.sendNotification({
-      id: orderId,
-      type: NotificationType.ORDER_STATUS,
-      title: '📦 订单状态更新',
-      content: message,
-      extra: {
-        orderId: orderId.toString(),
-        status: status
-      }
-    });
+    const notificationData = new NotificationData();
+    notificationData.id = orderId;
+    notificationData.type = NotificationType.ORDER_STATUS;
+    notificationData.title = '📦 订单状态更新';
+    notificationData.content = message;
+    const extraData: Record<string, string> = {};
+    extraData['orderId'] = orderId.toString();
+    extraData['status'] = status;
+    notificationData.extra = extraData;
+    return NotificationUtils.sendNotification(notificationData);
   }
 
   // 取消通知
