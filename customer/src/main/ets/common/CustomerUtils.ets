@@ -21,12 +21,12 @@ interface SessionRequestBody {
 }
 
 // 顾客端API工具类
-const API_BASE_URL: string = 'http://10.0.2.2:5000';
+const API_BASE_URL: string = 'http://10.52.131.181:5000';
 
 export class CustomerApiUtils {
-  // 获取菜品列表
+  // 获取菜品列表（使用和商家端相同的接口）
   static async getDishes(): Promise<ApiResponse> {
-    return await CustomerApiUtils.request('/api/customer/menu', 'GET', undefined);
+    return await CustomerApiUtils.request('/api/dishes/list', 'GET', undefined);
   }
 
   // 获取菜品详情
@@ -34,14 +34,14 @@ export class CustomerApiUtils {
     return await CustomerApiUtils.request('/api/dishes/' + dishId, 'GET', undefined);
   }
 
-  // 提交订单
+  // 提交订单（使用标准订单接口）
   static async submitOrder(tableId: string, items: object[], remark: string): Promise<ApiResponse> {
     const body: OrderRequestBody = {
       tableId: tableId,
       items: items,
       remark: remark
     };
-    return await CustomerApiUtils.request('/api/customer/order', 'POST', body);
+    return await CustomerApiUtils.request('/api/orders/create', 'POST', body);
   }
 
   // 创建临时会话

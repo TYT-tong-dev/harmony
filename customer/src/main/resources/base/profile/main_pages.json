@@ -1,7 +1,26 @@
 {
   "src": [
+    "pages/Index",
+    "pages/LoginPage",
+    "pages/RegisterPage",
+    "pages/ForgotPasswordPage",
+    "pages/MainPage",
+    "pages/HomePage",
+    "pages/DiscoverPage",
+    "pages/MessagePage",
+    "pages/ProfilePage",
+    "pages/CartPage",
+    "pages/ChatPage",
+    "pages/DishDetailPage",
+    "pages/AddDishPage",
+    "pages/DishManagementPage",
+    "pages/CustomerLoginPage",
     "pages/CustomerHomePage",
-    "pages/ScanTablePage"
+    "pages/ScanTablePage",
+    "pages/TableQRCodePage",
+    "pages/WalletPage",
+    "pages/MyFollowsPage",
+    "pages/NotificationPage",
+    "pages/SystemSettingsPage"
   ]
 }
-

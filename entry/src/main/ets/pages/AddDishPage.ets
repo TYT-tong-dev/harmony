@@ -6,6 +6,7 @@ import picker from '@ohos.file.picker';
 import abilityAccessCtrl from '@ohos.abilityAccessCtrl';
 import common from '@ohos.app.ability.common';
 import fs from '@ohos.file.fs';
+import util from '@ohos.util';
 
 type MediaPermissionName =
   | 'ohos.permission.READ_MEDIA'
@@ -587,21 +588,17 @@ export struct AddDishPage {
 
       // 转为Base64
       const uint8Array = new Uint8Array(buffer);
-      let binary = '';
-      for (let i = 0; i < uint8Array.length; i++) {
-        binary += String.fromCharCode(uint8Array[i]);
-      }
-      const base64Data = btoa(binary);
+      const base64Helper = new util.Base64Helper();
+      const base64Data = base64Helper.encodeToStringSync(uint8Array);
 
       // 获取文件名
       const fileName = sourcePath.split('/').pop() || `dish_${Date.now()}.jpg`;
 
       // 上传到服务器
-      const uploadData = {
-        filename: fileName,
-        type: 'dishes',
-        data: base64Data
-      };
+      const uploadData: Record<string, string> = {};
+      uploadData['filename'] = fileName;
+      uploadData['type'] = 'dishes';
+      uploadData['data'] = base64Data;
 
       const response: ApiResponse = await ApiUtils.post('/upload/base64', uploadData);
       if (response.statusCode === 200 && response.data) {
@@ -791,7 +788,7 @@ export struct AddDishPage {
     }
     // 如果是服务器路径（images/开头），拼接服务器URL
     if (this.newDish.imageUrl.startsWith('images/')) {
-      return `http://10.12.8.110:5000/${this.newDish.imageUrl}`;
+      return `http://10.52.131.181:5000/${this.newDish.imageUrl}`;
     }
     return this.toAbsoluteDishPath(this.newDish.imageUrl);
   }

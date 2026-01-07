@@ -1,7 +1,7 @@
 {
   "module": {
     "name": "customer",
-    "type": "entry",
+    "type": "feature",
     "description": "$string:customer_module_desc",
     "mainElement": "CustomerAbility",
     "deviceTypes": [
@@ -16,20 +16,12 @@
         "name": "CustomerAbility",
         "srcEntry": "./ets/customerability/CustomerAbility.ets",
         "description": "$string:CustomerAbility_desc",
-        "icon": "$media:customer_icon",
+        "icon": "$media:ic_shop",
         "label": "$string:CustomerAbility_label",
-        "startWindowIcon": "$media:customer_icon",
+        "startWindowIcon": "$media:ic_shop",
         "startWindowBackground": "$color:start_window_background",
         "exported": true,
         "skills": [
-          {
-            "entities": [
-              "entity.system.home"
-            ],
-            "actions": [
-              "action.system.home"
-            ]
-          },
           {
             "entities": [
               "entity.system.browsable"

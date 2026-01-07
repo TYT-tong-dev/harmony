@@ -371,7 +371,7 @@ export class LocalCartManager {
 // API 工具类 - 连接后端MySQL数据库API
 export class ApiUtils {
   // 后端API基础URL - 根据实际情况修改
-  private static readonly BASE_URL: string = 'http://10.12.8.110:5000/api';
+  private static readonly BASE_URL: string = 'http://10.52.131.181:5000/api';
   
   // 获取用户token
   private static getToken(): string {
@@ -533,74 +533,6 @@ export class ApiUtils {
       }).finally(() => {
         httpRequest.destroy();
       });
-    });
-  }
-
-  // 上传文件（multipart/form-data）
-  static async uploadFile(url: string, filePath: string, uploadType: string = 'dishes'): Promise<ApiResponse> {
-    return new Promise((resolve, reject) => {
-      const httpRequest = http.createHttp();
-      const token = ApiUtils.getToken();
-
-      // 读取文件内容并转为Base64
-      import fs from '@ohos.file.fs';
-
-      try {
-        // 获取文件名
-        const fileName = filePath.split('/').pop() || `${uploadType}_${Date.now()}.jpg`;
-
-        // 读取文件为ArrayBuffer
-        const file = fs.openSync(filePath, fs.OpenMode.READ_ONLY);
-        const stat = fs.statSync(filePath);
-        const buffer = new ArrayBuffer(stat.size);
-        fs.readSync(file.fd, buffer);
-        fs.closeSync(file);
-
-        // 转为Base64
-        const uint8Array = new Uint8Array(buffer);
-        let binary = '';
-        for (let i = 0; i < uint8Array.length; i++) {
-          binary += String.fromCharCode(uint8Array[i]);
-        }
-        const base64Data = btoa(binary);
-
-        // 使用JSON方式上传Base64编码的图片
-        const uploadData = {
-          filename: fileName,
-          type: uploadType,
-          data: base64Data
-        };
-
-        httpRequest.request(ApiUtils.BASE_URL + url, {
-          method: http.RequestMethod.POST,
-          header: {
-            'Content-Type': 'application/json',
-            'Authorization': token ? `Bearer ${token}` : ''
-          },
-          extraData: JSON.stringify(uploadData),
-          connectTimeout: 30000,
-          readTimeout: 30000
-        }).then((data: http.HttpResponse) => {
-          if (data.responseCode === 200) {
-            try {
-              const response = JSON.parse(data.result.toString()) as ApiResponse;
-              resolve(response);
-            } catch (e) {
-              reject(new Error('解析响应失败'));
-            }
-          } else {
-            reject(new Error(`上传失败: ${data.responseCode}`));
-          }
-        }).catch((err: BusinessError) => {
-          console.error('文件上传失败:', JSON.stringify(err));
-          reject(err);
-        }).finally(() => {
-          httpRequest.destroy();
-        });
-      } catch (error) {
-        console.error('读取文件失败:', JSON.stringify(error));
-        reject(error);
-      }
     });
   }
 }

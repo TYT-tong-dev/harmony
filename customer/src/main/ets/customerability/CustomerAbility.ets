@@ -38,10 +38,8 @@ export default class CustomerAbility extends UIAbility {
   onWindowStageCreate(windowStage: window.WindowStage): void {
     hilog.info(DOMAIN, 'CustomerAbility', '%{public}s', 'Ability onWindowStageCreate');
 
-    // 根据是否有桌号决定加载的页面
-    const pageUrl = this.tableInfo?.tableId ? 'pages/CustomerHomePage' : 'pages/ScanTablePage';
-    
-    windowStage.loadContent(pageUrl, (err) => {
+    // 顾客端默认显示Index欢迎页面
+    windowStage.loadContent('pages/Index', (err) => {
       if (err.code) {
         hilog.error(DOMAIN, 'CustomerAbility', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err));
         return;

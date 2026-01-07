@@ -88,7 +88,7 @@ python run.py
 修改 `entry/src/main/ets/common/Utils.ets` 中的服务器地址：
 
 ```typescript
-private static readonly BASE_URL: string = 'http://你的服务器IP:5000/api';
+private_static_readonly_BASE_URL: string = 'http://你的服务器IP:5000/api';
 ```
 
 ### 4. 运行应用

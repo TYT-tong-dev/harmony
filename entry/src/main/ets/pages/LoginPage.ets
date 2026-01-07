@@ -82,7 +82,7 @@ struct LoginPage {
     try {
       const httpRequest = http.createHttp();
       const url =
-        `http://10.12.8.110:5000/api/Users/Login?username=${encodeURIComponent(this.username)}&password=${encodeURIComponent(this.password)}`;
+        `http://10.52.131.181:5000/api/Users/Login?username=${encodeURIComponent(this.username)}&password=${encodeURIComponent(this.password)}`;
 
       const response = await httpRequest.request(
         url,

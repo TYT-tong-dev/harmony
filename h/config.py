@@ -9,7 +9,7 @@ class Config:
     DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
     
     # 数据库配置
-    DB_HOST = os.getenv('DB_HOST', '10.12.8.110')
+    DB_HOST = os.getenv('DB_HOST', '10.52.131.86')
     DB_PORT = int(os.getenv('DB_PORT', '3306'))
     DB_USER = os.getenv('DB_USER', 'root')
     DB_PASSWORD = os.getenv('DB_PASSWORD', '123456')

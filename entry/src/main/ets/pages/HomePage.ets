@@ -2215,7 +2215,15 @@ export struct HomePage {
   }
 
   private buildCarouselSlidesFromAssets(): Dish[] {
-    const source: Dish[] = this.createLocalSampleDishes();
+    // 直接使用菜品列表中的前5个
+    let source: Dish[] = [];
+    if (this.dishes && this.dishes.length > 0) {
+      source = this.dishes;
+    }
+    // 如果没有菜品，使用本地示例
+    if (source.length === 0) {
+      source = this.createLocalSampleDishes();
+    }
     if (!source || source.length === 0) {
       return [];
     }
@@ -2224,7 +2232,10 @@ export struct HomePage {
     for (let index = 0; index < Math.min(5, source.length); index++) {
       const original = source[index];
       const cloned = this.cloneDish(original);
-      cloned.imageUrl = fallbackImages[index] || fallbackImages[fallbackImages.length - 1];
+      // 如果菜品没有图片，使用默认图片
+      if (!cloned.imageUrl || cloned.imageUrl === '') {
+        cloned.imageUrl = fallbackImages[index] || fallbackImages[fallbackImages.length - 1];
+      }
       cloned.isRecommended = true;
       slides.push(cloned);
     }
@@ -2252,7 +2263,7 @@ export struct HomePage {
   }
 
   // 服务器基础地址（用于图片）
-  private static readonly IMAGE_SERVER_URL: string = 'http://10.12.8.110:5000';
+  private static readonly IMAGE_SERVER_URL: string = 'http://10.52.131.181:5000';
 
   private normalizeDishImagePath(path: string): string {
     if (!path) {
@@ -2441,9 +2452,8 @@ export struct HomePage {
       }
     } finally {
       this.isLoading = false;
-      if (!this.featuredSlides || this.featuredSlides.length === 0) {
-        this.featuredSlides = this.buildCarouselSlidesFromAssets();
-      }
+      // 每次加载菜品后都更新轮播数据，确保使用最新的数据库菜品
+      this.featuredSlides = this.buildCarouselSlidesFromAssets();
     }
   }
 
@@ -3050,12 +3060,12 @@ export struct HomePage {
     const samples: LocalDishSample[] = [
       { id: -1, name: '宫保鸡丁', description: '鸡丁酥嫩 花生脆香 酸甜微辣', cookingMethod: '鸡丁淀粉抓匀腌制，花生炸香后与辣椒、葱段搭配爆炒，淋糖醋酱收汁。', price: 38, image: 'app.media.dish1', category: '热菜', isRecommended: true, sales: 328, rating: 4.9, reviewCount: 268, ingredients: '鸡胸肉·花生米·干辣椒·花椒', cookTime: '约15分钟', flavorTags: ['酸甜微辣', '下饭必点'] },
       { id: -2, name: '麻婆豆腐', description: '豆腐嫩滑 麻辣鲜香 下饭首选', cookingMethod: '豆腐切块焯水，锅中炒香豆瓣酱与牛肉末，加入豆腐小火煮，撒花椒粉提味。', price: 28, image: 'app.media.dish2', category: '热菜', isRecommended: true, sales: 412, rating: 4.8, reviewCount: 322, ingredients: '北豆腐·牛肉末·郫县豆瓣·花椒粉', cookTime: '约12分钟', flavorTags: ['麻辣鲜香', '米饭搭档'] },
-      { id: -3, name: '糖醋里脊', description: '外酥里嫩 酸甜适口 老少皆宜', cookingMethod: '里脊条腌制后裹糊炸至金黄，锅中调糖醋汁快速翻炒裹匀。', price: 42, image: 'app.media.dish3', category: '热菜', isRecommended: true, sales: 295, rating: 4.9, reviewCount: 301, ingredients: '里脊肉·番茄酱·白醋·白芝麻', cookTime: '约18分钟', flavorTags: ['酸甜开胃', '儿童喜爱'] },
-      { id: -4, name: '红烧肉', description: '肥而不腻 入口即化 经典家常', cookingMethod: '五花肉焯水后加冰糖慢炖，加入老抽、生抽和香料小火收汁。', price: 48, image: 'app.media.dish4', category: '热菜', isRecommended: true, sales: 366, rating: 4.7, reviewCount: 210, ingredients: '五花肉·老抽·生抽·冰糖', cookTime: '约40分钟', flavorTags: ['醇厚浓香', '米饭杀手'] },
-      { id: -5, name: '清蒸鲈鱼', description: '清鲜不腥 原汁原味 健康低脂', cookingMethod: '鲈鱼处理干净抹盐，铺姜丝蒸熟后淋热油和蒸鱼豉油。', price: 68, image: 'app.media.dish5', category: '热菜', isRecommended: false, sales: 156, rating: 4.8, reviewCount: 146, ingredients: '鲜鲈鱼·姜丝·蒸鱼豉油', cookTime: '约15分钟', flavorTags: ['清淡少油', '高蛋白'] },
+      { id: -3, name: '炒肉片', description: '肉片鲜嫩 配菜爽脆 家常美味', cookingMethod: '肉片腌制入味，与时蔬一起大火快炒，调味出锅。', price: 36, image: 'app.media.dish3', category: '热菜', isRecommended: true, sales: 295, rating: 4.9, reviewCount: 301, ingredients: '猪肉片·青椒·木耳·葱姜', cookTime: '约10分钟', flavorTags: ['咸鲜适口', '下饭必备'] },
+      { id: -4, name: '清蒸鲈鱼', description: '清鲜不腥 原汁原味 健康低脂', cookingMethod: '鲈鱼处理干净抹盐，铺姜丝蒸熟后淋热油和蒸鱼豉油。', price: 68, image: 'app.media.dish4', category: '热菜', isRecommended: true, sales: 156, rating: 4.8, reviewCount: 146, ingredients: '鲜鲈鱼·姜丝·蒸鱼豉油', cookTime: '约15分钟', flavorTags: ['清淡少油', '高蛋白'] },
+      { id: -5, name: '拍黄瓜', description: '清脆爽口 蒜香四溢 开胃凉菜', cookingMethod: '黄瓜拍碎切段，加蒜末、香醋、生抽、香油拌匀即可。', price: 18, image: 'app.media.dish5', category: '凉菜', isRecommended: true, sales: 238, rating: 4.6, reviewCount: 188, ingredients: '黄瓜·蒜末·香醋·香油', cookTime: '约5分钟', flavorTags: ['清爽解腻', '开胃必备'] },
       { id: -6, name: '酸辣土豆丝', description: '酸香爽脆 小炒必备 家常经典', cookingMethod: '土豆丝冲淋去淀粉，锅中热油放干辣椒、花椒爆香，加入土豆丝翻炒，调入醋和盐。', price: 18, image: 'app.media.default_dish', category: '凉菜', isRecommended: false, sales: 238, rating: 4.6, reviewCount: 188, ingredients: '土豆丝·青红椒·干辣椒·米醋', cookTime: '约8分钟', flavorTags: ['脆爽解腻', '酸辣开胃'] },
-      { id: -7, name: '牛肉拉面', description: '牛肉鲜香 汤汁浓郁 面条劲道', cookingMethod: '牛肉与香料炖煮成汤底，拉制面条入锅煮熟，浇上牛肉汤即可。', price: 32, image: 'app.media.dish3', category: '主食', isRecommended: true, sales: 189, rating: 4.7, reviewCount: 233, ingredients: '牛腱肉·手工面·八角·香菜', cookTime: '约20分钟', flavorTags: ['汤浓味厚', '暖胃饱腹'] },
-      { id: -8, name: '芒果布丁', description: '香甜丝滑 清爽解腻 午后甜点', cookingMethod: '芒果泥与牛奶、吉利丁混合，倒入模具冷藏凝固，食用前点缀芒果粒。', price: 22, image: 'app.media.default_dish', category: '甜品', isRecommended: true, sales: 142, rating: 4.8, reviewCount: 165, ingredients: '芒果·牛奶·淡奶油·吉利丁', cookTime: '约10分钟+冷藏', flavorTags: ['清爽顺滑', '下午茶'] }
+      { id: -7, name: '牛肉拉面', description: '牛肉鲜香 汤汁浓郁 面条劲道', cookingMethod: '牛肉与香料炖煮成汤底，拉制面条入锅煮熟，浇上牛肉汤即可。', price: 32, image: 'app.media.default_dish', category: '主食', isRecommended: false, sales: 189, rating: 4.7, reviewCount: 233, ingredients: '牛腱肉·手工面·八角·香菜', cookTime: '约20分钟', flavorTags: ['汤浓味厚', '暖胃饱腹'] },
+      { id: -8, name: '芒果布丁', description: '香甜丝滑 清爽解腻 午后甜点', cookingMethod: '芒果泥与牛奶、吉利丁混合，倒入模具冷藏凝固，食用前点缀芒果粒。', price: 22, image: 'app.media.default_dish', category: '甜品', isRecommended: false, sales: 142, rating: 4.8, reviewCount: 165, ingredients: '芒果·牛奶·淡奶油·吉利丁', cookTime: '约10分钟+冷藏', flavorTags: ['清爽顺滑', '下午茶'] }
     ];
 
     return samples.map(s => {

@@ -77,7 +77,8 @@
           "name": "default",
           "applyToProducts": [
             "default",
-            "merchant"
+            "merchant",
+            "customer"
           ]
         }
       ]
@@ -89,6 +90,7 @@
         {
           "name": "default",
           "applyToProducts": [
+            "default",
             "customer"
           ]
         }
